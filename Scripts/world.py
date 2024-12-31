@@ -1,6 +1,5 @@
-import neat
+import neat, multiprocessing,concurrent.futures
 from entity import *
-
 
 class Cell:
     def __init__(
@@ -11,13 +10,12 @@ class Cell:
         # Land, Water, Forest
         self.element: str = "Land"
 
-
 class World:
     def __init__(
         self,
         grid=Vector2(int(100), int(70)),
-        prey_size=100,
-        predator_size=100,
+        prey_size=500,
+        predator_size=500,
         number_of_generations: int = 10000,
         size=10,
         predator_config_path="../Neat/predator_config.txt",
@@ -35,10 +33,13 @@ class World:
             [Cell(Vector2(int(x), int(y))) for x in range(int(self.GRID.y))]
             for y in range(int(self.GRID.x))
         ]
+
         self.time = 0
         self.water_chunk = Vector2(self.GRID.x // 12, self.GRID.y // 12)
         self.forest_chunk = Vector2(self.GRID.x // 6, self.GRID.y // 6)
-
+        self.land_chunk = Vector2(self.GRID.x // 6, self.GRID.y // 6)
+        for _ in range(1000):
+            self.create_world(water=False)
         # Entities
         # prey
         self.prey_size = prey_size
@@ -59,31 +60,49 @@ class World:
         # pygame variables
 
     # creates the species population and stores it.
-    def populate(self):
+    def create_world(self,water=True,forest=True,land=True):
         # Create forest elements.
-        water = [
-            Vector2(
-                int(random.randint(0, int(self.GRID.x - self.water_chunk.x))),
-                int(random.randint(0, int(self.GRID.y - self.water_chunk.y))),
-            )
-            for _ in range(18)
-        ]
-        forest = [
-            Vector2(
-                int(random.randint(0, int(self.GRID.x - self.forest_chunk.x))),
-                int(random.randint(0, int(self.GRID.y - self.forest_chunk.y))),
-            )
-            for _ in range(6)
-        ]
-        for i in water:
-            for x in range(int(i.x),int( i.x + self.water_chunk.x)):
-                for y in range(int(i.y), int(i.y + self.water_chunk.y)):
-                    self.map[x][y].element = "Water"
-        for i in forest:
-            for x in range(int(i.x), int(i.x + self.forest_chunk.x)):
-                for y in range(int(i.y), int(i.y + self.forest_chunk.y)):
-                    self.map[x][y].element = "Forest"
+        if water:
+            water = [
+                Vector2(
+                    int(random.randint(0, int(self.GRID.x - self.water_chunk.x))),
+                    int(random.randint(0, int(self.GRID.y - self.water_chunk.y))),
+                )
+                for _ in range(18)
+            ]
 
+            for i in water:
+                for x in range(int(i.x), int(i.x + self.water_chunk.x)):
+                    for y in range(int(i.y), int(i.y + self.water_chunk.y)):
+                        self.map[x][y].element = "Water"
+
+        if forest:
+            forest = [
+                Vector2(
+                    int(random.randint(0, int(self.GRID.x - self.forest_chunk.x))),
+                    int(random.randint(0, int(self.GRID.y - self.forest_chunk.y))),
+                )
+                for _ in range(6)
+            ]
+            for i in forest:
+                for x in range(int(i.x), int(i.x + self.forest_chunk.x)):
+                    for y in range(int(i.y), int(i.y + self.forest_chunk.y)):
+                        self.map[x][y].element = "Forest"
+
+        if land:
+            land = [
+                Vector2(
+                    int(random.randint(0, int(self.GRID.x - self.land_chunk.x))),
+                    int(random.randint(0, int(self.GRID.y - self.land_chunk.y))),
+                )
+                for _ in range(6)
+            ]
+            for i in land:
+                for x in range(int(i.x), int(i.x + self.land_chunk.x)):
+                    for y in range(int(i.y), int(i.y + self.land_chunk.y)):
+                        self.map[x][y].element = "Land"
+
+    def populate(self):
         # Populate with Prey
         self.prey_config = neat.Config(
             neat.DefaultGenome,
@@ -100,15 +119,15 @@ class World:
             self.prey_population = neat.Population(self.prey_config)
         for genome in self.prey_population.population.values():
             # Randomly place the prey on the left side of the world
-            x = random.randint(0, (int(self.GRID.x) - 2) // 2)
+            # x = random.randint(0, (int(self.GRID.x) - 2) // 2)
 
             # Randomly place the prey in the world
-            # x = random.randint(0, (int(self.GRID.x) - 2))
+            x = random.randint(0, (int(self.GRID.x) - 2))
 
             # Randomly place the prey on the upper left side of the world
-            y = random.randint(0, (int(self.GRID.y) - 2) // 2)
+            # y = random.randint(0, (int(self.GRID.y) - 2) // 2)
 
-            # y = random.randint(0, int(self.GRID.y) - 2)
+            y = random.randint(0, int(self.GRID.y) - 2)
             self.prey_set[(x, y)] = Prey(
                 Vector2(int(x), int(y)),
                 self,
@@ -133,27 +152,37 @@ class World:
                 self.prey_config
             )  # list of tuples of (genome,genome_id)
         for genome in self.predator_population.population.values():
-            x = random.randint((int(self.GRID.x) - 2) // 2, int(self.GRID.x) - 2)
-            # x = random.randint(0, int(self.GRID.x) - 2)
+            # x = random.randint((int(self.GRID.x) - 2) // 2, int(self.GRID.x) - 2)
+            x = random.randint(0, int(self.GRID.x) - 2)
 
-            y = random.randint((int(self.GRID.y) - 2) // 2, int(self.GRID.y) - 2)
+            # y = random.randint((int(self.GRID.y) - 2) // 2, int(self.GRID.y) - 2)
 
-            # y = random.randint(0, int(self.GRID.y) - 2)
+            y = random.randint(0, int(self.GRID.y) - 2)
             self.predator_set[(x, y)] = Predator(
                 Vector2(int(x), int(y)), self, self.predator_config, genome=genome
             )
 
+    # Needs multiprocessing
     def calculate_fitness(self):
-        prey_set = list(self.prey_set.values())
-        for prey in prey_set:
-            output = prey.net.activate(prey.network_inputs())
-            prey.preform_action(output)
-            prey.fitness += 2
+        def perform_action(entity):
+            output = entity.net.activate(entity.network_inputs())
+            entity.preform_action(output)
+        def calculate_fitness_prey():
+            prey_set = list(self.prey_set.values())
+            for entity in prey_set:
+                perform_action(entity)
+            # with concurrent.futures.ProcessPoolExecutor() as executor:
+            #     executor.map(perform_action, prey_set)
+        def calculate_fitness_predator():
+            predator_set = list(self.predator_set.values())
+            for entity in predator_set:
+                perform_action(entity)
+            # with concurrent.futures.ProcessPoolExecutor() as executor:
+            #     executor.map(perform_action, predator_set)
 
-        predator_set = list(self.predator_set.values())
-        for predator in predator_set:
-            output = predator.net.activate(predator.network_inputs())
-            predator.preform_action(output)
+        calculate_fitness_prey()
+        calculate_fitness_predator()
+
 
     def test_move(self):
         keys = list(self.prey_set.keys())
@@ -167,9 +196,3 @@ class World:
         for j in key:
             if j in self.predator_set:
                 self.predator_set[j].move_and_collide(Vector2(1, 0), 1)
-
-    # Run one generation and update the fitness function.
-
-
-# test = World()
-# test.populate()

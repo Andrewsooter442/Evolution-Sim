@@ -16,7 +16,7 @@ class Draw(World):
         self.screen = pygame.display.set_mode(self.RESOLUTION)
         self.surface = pygame.Surface(self.RESOLUTION, pygame.SRCALPHA)
         self.FPS = 20
-        self.run = True
+        self.run = False
         self.clock = pygame.time.Clock()
 
     def draw_entity(self):
@@ -128,11 +128,17 @@ class Draw(World):
                     self.FPS -= 1
                     print(self.FPS)
 
+    # show the fps in the window
+    def render_fps(self):
+        font = pygame.font.Font(None, 36)
+        fps = font.render(str(int(self.clock.get_fps())), True, pygame.Color("black"))
+        self.screen.blit(fps, (0, 0))
+        pygame.display.flip()
+
     # Draw the stuff on window
     def more_shit(self):
         self.draw_entity()
         self.screen.blit(self.surface, (0, 0))
-        pygame.display.flip()
 
     # Main game loop
     def loop(self, draw=False):
@@ -144,6 +150,7 @@ class Draw(World):
 
         # Draw the stuff
         self.more_shit()
+        self.render_fps()
 
 
 test = Draw()
@@ -156,7 +163,8 @@ prey_statistics = StatisticsReporter()
 predator_population = test.predator_population
 predator_population.reporters.add(StdOutReporter(True))
 predator_statistics = StatisticsReporter()
-for generation in range(test.num_generations):
+# for generation in range(test.num_generations):
+while True:
     test.populate()
     while test.prey_set or test.predator_set:
         test.loop()
