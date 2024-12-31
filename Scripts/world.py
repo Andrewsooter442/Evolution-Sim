@@ -1,7 +1,6 @@
 import neat
 from entity import *
 
-
 class Cell:
     def __init__(
             self,
@@ -11,10 +10,9 @@ class Cell:
         # Land, Water, Forest
         self.element: str = "Land"
 
-
 class World:
     def __init__(
-            self, grid=Vector2(int(100), int(70)), prey_size=500, predator_size=500,
+            self, grid=Vector2(int(100), int(70)), prey_size=100, predator_size=100,
             number_of_generations: int = 10000, size=10,
             predator_config_path='../Neat/predator_config.txt', prey_config_path='../Neat/prey_config.txt'
 
@@ -67,9 +65,16 @@ class World:
             print("Initializing prey population")
             self.prey_population = neat.Population(self.prey_config)
         for genome in self.prey_population.population.values():
-            # x = random.randint(0, (int(self.GRID.x) - 2) // 2)
-            x = random.randint(0, (int(self.GRID.x) - 2))
-            y = random.randint(0, int(self.GRID.y) - 2)
+            # Randomly place the prey on the left side of the world
+            x = random.randint(0, (int(self.GRID.x) - 2) // 2)
+
+            # Randomly place the prey in the world
+            # x = random.randint(0, (int(self.GRID.x) - 2))
+
+            # Randomly place the prey on the upper left side of the world
+            y = random.randint(0, (int(self.GRID.y) - 2) // 2)
+
+            # y = random.randint(0, int(self.GRID.y) - 2)
             self.prey_set[(x, y)] = Prey(Vector2(int(x), int(y)), self, self.prey_config, genome=genome, )
 
         # Population with Predator
@@ -85,9 +90,12 @@ class World:
             print("Initializing predator")
             self.predator_population = neat.Population(self.prey_config)  # list of tuples of (genome,genome_id)
         for genome in self.predator_population.population.values():
-            # x = random.randint((int(self.GRID.x) - 2) // 2, int(self.GRID.x) - 2)
-            x = random.randint(0, int(self.GRID.x) - 2)
-            y = random.randint(0, int(self.GRID.y) - 2)
+            x = random.randint((int(self.GRID.x) - 2) // 2, int(self.GRID.x) - 2)
+            # x = random.randint(0, int(self.GRID.x) - 2)
+
+            y = random.randint((int(self.GRID.y) - 2) // 2, int(self.GRID.y) - 2)
+
+            # y = random.randint(0, int(self.GRID.y) - 2)
             self.predator_set[(x, y)] = Predator(Vector2(int(x), int(y)), self, self.predator_config, genome=genome)
 
     def calculate_fitness(self):

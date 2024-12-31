@@ -3,10 +3,9 @@ from world import *
 from neat.reporting import StdOutReporter
 from neat.statistics import StatisticsReporter
 
-
+# Map a value x from x_min to x_max to y_min to y_max
 def map_value(x, x_min, x_max, y_min, y_max):
     return y_min + ((x - x_min) * (y_max - y_min)) / (x_max - x_min)
-
 
 class Draw(World):
     def __init__(self):
@@ -45,6 +44,7 @@ class Draw(World):
                 self.cell_size // 2,
             )
 
+    # Tasks that run on every frame
     def tasks(self):
         # For predators
         keys = list(self.predator_set.keys())
@@ -55,8 +55,8 @@ class Draw(World):
                 if predator.Energy > predator.Max_Energy:
                     predator.Energy = predator.Max_Energy
                 if predator.Energy <= 0:
-                    predator.fitness -= predator.dies / self.time
-                    predator.genome.fitness = predator.fitness
+                    # predator.fitness -= predator.dies / self.time
+                    # predator.genome.fitness = predator.fitness
                     del self.predator_set[pos]
                     continue
 
@@ -68,11 +68,14 @@ class Draw(World):
             if prey.Energy > prey.Max_Energy:
                 prey.Energy = prey.Max_Energy
             if prey.Energy <= 0:
-                prey.fitness -= prey.get_killed / self.time
+                # prey.fitness -= prey.get_killed / self.time
+                prey.fitness = prey.Max_Energy - prey.Energy
+                prey.fitness = map_value(prey.fitness, 0, prey.Max_Energy, 0, 100)
                 prey.genome.fitness = prey.fitness
                 del self.prey_set[pos]
                 continue
 
+    # Initializes the window and hears for events
     def shit(self):
         self.time += 1 / self.FPS
         self.screen.fill(pygame.Color("white"))
@@ -87,19 +90,28 @@ class Draw(World):
                 pygame.quit()
             elif event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_f:
-                    self.run = False
+                    if self.run:
+                        self.run = False
+                        print("Uncaped FPS")
+                    else:
+                        self.run = True
+                        print(self.FPS)
                 if event.key == pygame.K_UP:
                     self.run = True
                     self.FPS += 1
+                    print(self.FPS)
                 if event.key == pygame.K_DOWN:
                     self.run = True
                     self.FPS -= 1
+                    print(self.FPS)
 
+    # Draw the stuff on window
     def more_shit(self):
         self.draw_entity()
         self.screen.blit(self.surface, (0, 0))
         pygame.display.flip()
 
+    # Main game loop
     def loop(self, draw=False):
         # Initialize the window
         self.shit()
@@ -126,6 +138,7 @@ for generation in range(test.num_generations):
     while test.prey_set or test.predator_set:
         test.loop()
 
+    print("Prey Populatiofn")
     prey_population.reporters.start_generation(prey_population.generation)
     prey_population.population = prey_population.reproduction.reproduce(
         prey_population.config,
@@ -138,6 +151,7 @@ for generation in range(test.num_generations):
     prey_population.reporters.end_generation(prey_population.config, prey_population.population,
                                              prey_population.species)
 
+    print("Predator Population")
     predator_population.reporters.start_generation(predator_population.generation)
     predator_population.population = predator_population.reproduction.reproduce(
         predator_population.config,
