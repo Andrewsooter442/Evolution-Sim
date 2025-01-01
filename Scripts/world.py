@@ -4,8 +4,8 @@ from entity import *
 
 class Cell:
     def __init__(
-            self,
-            pos: Vector2,
+        self,
+        pos: Vector2,
     ):
         self.position: Vector2 = pos
         # Land, Water, Forest
@@ -14,10 +14,14 @@ class Cell:
 
 class World:
     def __init__(
-            self, grid=Vector2(int(100), int(70)), prey_size=500, predator_size=500,
-            number_of_generations: int = 10000, size=10,
-            predator_config_path='../Neat/predator_config.txt', prey_config_path='../Neat/prey_config.txt'
-
+        self,
+        grid=Vector2(int(100), int(70)),
+        prey_size=100,
+        predator_size=100,
+        number_of_generations: int = 10000,
+        size=10,
+        predator_config_path="../Neat/predator_config.txt",
+        prey_config_path="../Neat/prey_config.txt",
     ):
         # World variables
         # No. of cells in the world (1 cell occupied by 1 entity)
@@ -32,6 +36,8 @@ class World:
             for y in range(int(self.GRID.x))
         ]
         self.time = 0
+        self.water_chunk = Vector2(self.GRID.x // 12, self.GRID.y // 12)
+        self.forest_chunk = Vector2(self.GRID.x // 6, self.GRID.y // 6)
 
         # Entities
         # prey
@@ -54,23 +60,61 @@ class World:
 
     # creates the species population and stores it.
     def populate(self):
+        # Create forest elements.
+        water = [
+            Vector2(
+                int(random.randint(0, int(self.GRID.x - self.water_chunk.x))),
+                int(random.randint(0, int(self.GRID.y - self.water_chunk.y))),
+            )
+            for _ in range(18)
+        ]
+        forest = [
+            Vector2(
+                int(random.randint(0, int(self.GRID.x - self.forest_chunk.x))),
+                int(random.randint(0, int(self.GRID.y - self.forest_chunk.y))),
+            )
+            for _ in range(6)
+        ]
+        for i in water:
+            for x in range(int(i.x),int( i.x + self.water_chunk.x)):
+                for y in range(int(i.y), int(i.y + self.water_chunk.y)):
+                    self.map[x][y].element = "Water"
+        for i in forest:
+            for x in range(int(i.x), int(i.x + self.forest_chunk.x)):
+                for y in range(int(i.y), int(i.y + self.forest_chunk.y)):
+                    self.map[x][y].element = "Forest"
+
         # Populate with Prey
         self.prey_config = neat.Config(
             neat.DefaultGenome,
             neat.DefaultReproduction,
             neat.DefaultSpeciesSet,
             neat.DefaultStagnation,
-            self.prey_config_path
+            self.prey_config_path,
         )
-        self.prey_config.pop_size = self.prey_size  # set the population size in the config
+        self.prey_config.pop_size = (
+            self.prey_size
+        )  # set the population size in the config
         if self.prey_population is None:
             print("Initializing prey population")
             self.prey_population = neat.Population(self.prey_config)
         for genome in self.prey_population.population.values():
-            # x = random.randint(0, (int(self.GRID.x) - 2) // 2)
-            x = random.randint(0, (int(self.GRID.x) - 2))
-            y = random.randint(0, int(self.GRID.y) - 2)
-            self.prey_set[(x, y)] = Prey(Vector2(int(x), int(y)), self, self.prey_config, genome=genome, )
+            # Randomly place the prey on the left side of the world
+            x = random.randint(0, (int(self.GRID.x) - 2) // 2)
+
+            # Randomly place the prey in the world
+            # x = random.randint(0, (int(self.GRID.x) - 2))
+
+            # Randomly place the prey on the upper left side of the world
+            y = random.randint(0, (int(self.GRID.y) - 2) // 2)
+
+            # y = random.randint(0, int(self.GRID.y) - 2)
+            self.prey_set[(x, y)] = Prey(
+                Vector2(int(x), int(y)),
+                self,
+                self.prey_config,
+                genome=genome,
+            )
 
         # Population with Predator
         self.predator_config = neat.Config(
@@ -78,17 +122,26 @@ class World:
             neat.DefaultReproduction,
             neat.DefaultSpeciesSet,
             neat.DefaultStagnation,
-            self.predator_config_path
+            self.predator_config_path,
         )
-        self.predator_config.pop_size = self.prey_size  # set the population size in the config
+        self.predator_config.pop_size = (
+            self.prey_size
+        )  # set the population size in the config
         if self.predator_population is None:
             print("Initializing predator")
-            self.predator_population = neat.Population(self.prey_config)  # list of tuples of (genome,genome_id)
+            self.predator_population = neat.Population(
+                self.prey_config
+            )  # list of tuples of (genome,genome_id)
         for genome in self.predator_population.population.values():
-            # x = random.randint((int(self.GRID.x) - 2) // 2, int(self.GRID.x) - 2)
-            x = random.randint(0, int(self.GRID.x) - 2)
-            y = random.randint(0, int(self.GRID.y) - 2)
-            self.predator_set[(x, y)] = Predator(Vector2(int(x), int(y)), self, self.predator_config, genome=genome)
+            x = random.randint((int(self.GRID.x) - 2) // 2, int(self.GRID.x) - 2)
+            # x = random.randint(0, int(self.GRID.x) - 2)
+
+            y = random.randint((int(self.GRID.y) - 2) // 2, int(self.GRID.y) - 2)
+
+            # y = random.randint(0, int(self.GRID.y) - 2)
+            self.predator_set[(x, y)] = Predator(
+                Vector2(int(x), int(y)), self, self.predator_config, genome=genome
+            )
 
     def calculate_fitness(self):
         prey_set = list(self.prey_set.values())
@@ -116,6 +169,7 @@ class World:
                 self.predator_set[j].move_and_collide(Vector2(1, 0), 1)
 
     # Run one generation and update the fitness function.
+
 
 # test = World()
 # test.populate()

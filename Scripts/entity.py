@@ -1,6 +1,12 @@
 import random, pygame, neat
+from math import *
 from abc import ABC, abstractmethod
 from pygame import Vector2
+
+
+# Map a value x from x_min to x_max to y_min to y_max
+def map_value(x, x_min, x_max, y_min, y_max):
+    return y_min + ((x - x_min) * (y_max - y_min)) / (x_max - x_min)
 
 
 class Entity(ABC):
@@ -18,7 +24,7 @@ class Entity(ABC):
         self.genome = genome
         self.net = neat.nn.FeedForwardNetwork.create(self.genome, config)
 
-    # Check of other species in the neighbour
+    # Check of species in the neighbour
     def get_vision(self):
         probability = self.world.luminance / 100
 
@@ -105,10 +111,14 @@ class Entity(ABC):
         to_ret += to_ret_predator
         return to_ret
 
-    '''
-    Get the input for the neural network
+    """
+    Get the input for the neural network (total 17 inputs).
     Energy
     world_luminance
+    Distance from wall N
+                       S
+                       E
+                       W
     Opposite species in N (0 if no 3-1 if yes (depending of how close it is)) for 3 blocks
                         S
                         E
@@ -116,15 +126,22 @@ class Entity(ABC):
     Type of terrain     Land (0 if false 1 if true)
                         Water
                         Forest
-    '''
+    """
 
     def network_inputs(self):
         to_ret = []
         entity_info = [self.Energy / 100]
         luminance = [self.world.luminance / 100]
+        # Get the position of the species in the neighbour
         entity_vision = self.get_vision()
-        # print((entity_vision))
         region = []
+        # Distance from wall
+        distance = [
+            self.pos.y,
+            self.world.GRID.y - self.pos.y - 1,
+            self.pos.x,
+            self.world.GRID.x - self.pos.x - 1,
+        ]
         x = int(self.pos.x)
         y = int(self.pos.y)
         if self.world.map[x][y].element == "Land":
@@ -133,16 +150,17 @@ class Entity(ABC):
             region = [0, 1, 0]
         if self.world.map[x][y].element == "Water":
             region = [0, 0, 1]
+
         to_ret += entity_info
         to_ret += luminance
+        to_ret += distance
         to_ret += entity_vision
         to_ret += region
         return to_ret
 
     # Output action Depends of the species specified on the implementation
     @abstractmethod
-    def preform_action(self, output):
-        ...
+    def preform_action(self, output): ...
 
     # Use the neural network to make a decision based on inputs
     def decide(self):
@@ -150,8 +168,7 @@ class Entity(ABC):
 
     # Implements movement and collision and feeding
     @abstractmethod
-    def move_and_collide(self, direction, speed):
-        ...
+    def move_and_collide(self, direction, speed): ...
 
 
 class Predator(Entity):
@@ -160,8 +177,9 @@ class Predator(Entity):
         self.speed = 1
         self.type = "Predator"
         self.exists = 1
-        self.Max_Energy = self.world.GRID.x * (self.movement_cost + self.exists)
-        # self.Max_Energy = 100
+        self.Max_Energy = (
+            sqrt(2 * self.world.GRID.x**2) * (self.movement_cost + self.exists) * 2
+        )
         self.Energy = self.Max_Energy
         self.eat_gain = self.Max_Energy // 2
         self.fitness = 0
@@ -169,14 +187,14 @@ class Predator(Entity):
         self.genome.fitness = self.fitness
         self.dies = self.reward / 2
 
-    '''
+    """
       Probability of moving North
                             South
                             East
                             West
       Probability of doing nothing
       Probability of killing entity in front
-      '''
+      """
 
     def preform_action(self, output):
         max_index = output.index(max(output))
@@ -191,7 +209,7 @@ class Predator(Entity):
                 self.move_and_collide(Vector2(-1, 0), 1)
             case 4:
                 self.move_and_collide(Vector2(0, 0), 1)
-        '''Implement the killing mechanism'''
+        """Implement the killing mechanism"""
 
     # Move and kill
     # set the fitness function of prey if it is killed
@@ -199,9 +217,11 @@ class Predator(Entity):
         # Move
         pos = self.pos + direction * speed
         if (
-                (pos.x, pos.y) not in self.world.predator_set
-                and pos[0] < self.world.GRID.x and pos[0] >= 0
-                and pos[1] < self.world.GRID.y and pos[1] >= 0
+            (pos.x, pos.y) not in self.world.predator_set
+            and pos[0] < self.world.GRID.x
+            and pos[0] >= 0
+            and pos[1] < self.world.GRID.y
+            and pos[1] >= 0
         ):
             del self.world.predator_set[(self.pos.x, self.pos.y)]
             self.pos = pos
@@ -210,16 +230,27 @@ class Predator(Entity):
 
         # Eat prey
         if (self.pos.x, self.pos.y) in self.world.prey_set:
+            # Prey
             # Punishment for being eaten
             prey = self.world.prey_set[self.pos.x, self.pos.y]
-            prey.fitness -= prey.get_killed / self.world.time
+            # prey.fitness -= prey.get_killed / self.world.time
+            prey.fitness = prey.Max_Energy - prey.Energy
+            # Map the value of fitness to 0-90 cuz it got eaten by predator
+            prey.fitness = map_value(prey.fitness, 0, prey.Max_Energy, 0, 90)
             prey.genome.fitness = prey.fitness
             del self.world.prey_set[(self.pos.x, self.pos.y)]
 
-            self.Energy += self.eat_gain
+            # Predator
 
             # Reward for eating prey
-            self.fitness += self.reward
+            # self.fitness += self.reward
+            if (self.Max_Energy - self.Energy) >= self.eat_gain:
+                self.fitness += self.reward
+            else:
+                self.fitness += map_value(
+                    self.Max_Energy - self.Energy, 0, self.eat_gain, 0, self.reward
+                )
+            self.Energy += self.eat_gain
             self.genome.fitness = self.fitness
 
 
@@ -228,22 +259,24 @@ class Prey(Entity):
         super().__init__(pos, world, prey_config, genome)
         self.speed = 1
         self.type = "Prey"
-        self.fitness = 50
+        self.fitness = 100
+        self.movement_cost = 0
         self.exists = 1
-        self.Max_Energy = self.world.GRID.x * (self.movement_cost + self.exists)
-        # self.Max_Energy = 100
+        self.Max_Energy = (
+            sqrt(2 * self.world.GRID.x**2) * (self.movement_cost + self.exists) * 2
+        )
         self.Energy = self.Max_Energy
         self.get_killed = self.Max_Energy / 2
         self.dies = self.Max_Energy // 6
         self.genome.fitness = self.fitness
 
-    '''
+    """
     Probability of moving North
                           South
                           East
                           West
     Random movement
-    '''
+    """
 
     def preform_action(self, output):
         max_index = output.index(max(output))
@@ -263,9 +296,11 @@ class Prey(Entity):
         self.genome.fitness = self.fitness
         pos = self.pos + direction * speed
         if (
-                (pos.x, pos.y) not in self.world.prey_set
-                and pos[0] < self.world.GRID.x and pos[0] >= 0
-                and pos[1] < self.world.GRID.y and pos[1] >= 0
+            (pos.x, pos.y) not in self.world.prey_set
+            and pos[0] < self.world.GRID.x
+            and pos[0] >= 0
+            and pos[1] < self.world.GRID.y
+            and pos[1] >= 0
         ):
             del self.world.prey_set[(self.pos.x, self.pos.y)]
             self.pos = pos
