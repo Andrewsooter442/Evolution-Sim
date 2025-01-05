@@ -1,65 +1,20 @@
-import pygame, neat, os
-from world import *
 from neat.reporting import StdOutReporter
 from neat.statistics import StatisticsReporter
+from ui import *
 
 
-# Map a value x from x_min to x_max to y_min to y_max
-def map_value(x, x_min, x_max, y_min, y_max):
-    return y_min + ((x - x_min) * (y_max - y_min)) / (x_max - x_min)
-
-
-class Draw(World):
-    def __init__(self):
-        super().__init__()
-        pygame.init()
-        self.screen = pygame.display.set_mode(self.RESOLUTION)
-        self.surface = pygame.Surface(self.RESOLUTION, pygame.SRCALPHA)
-        self.FPS = 20
-        self.run = False
-        self.clock = pygame.time.Clock()
-
-    def draw_entity(self):
-        for cell in self.map:
-            for c in cell:
-                rect = pygame.rect.Rect(
-                    c.position.y * self.cell_size,
-                    c.position.x * self.cell_size,
-                    self.cell_size,
-                    self.cell_size,
-                )
-                # There is a mistake in the map and x and y are switched.
-                if c.element == "Water":
-                    pygame.draw.rect(self.surface, (130, 196, 237), rect)
-                elif c.element == "Land":
-                    pygame.draw.rect(self.surface,(190, 247, 206) , rect)
-                elif c.element == "Forest":
-                    pygame.draw.rect(self.surface, (80, 230, 100), rect)
-        for predator in self.predator_set.values():
-            trans = map_value(predator.Energy, 1, predator.Max_Energy, 50, 255)
-            pos = predator.pos
-            pygame.draw.circle(
-                self.surface,
-                (255, 0, 0, int(trans)),
-                (
-                    pos[0] * self.cell_size + self.cell_size // 2,
-                    pos[1] * self.cell_size + self.cell_size // 2,
-                ),
-                self.cell_size // 2,
-            )
-        for prey in self.prey_set.values():
-            trans = map_value(prey.Energy, 1, prey.Max_Energy, 50, 255)
-            pos = prey.pos
-            pygame.draw.circle(
-                self.surface,
-                (0, 0, 255, trans),
-                # (69, 27, 87, trans),
-                (
-                    pos[0] * self.cell_size + self.cell_size // 2,
-                    pos[1] * self.cell_size + self.cell_size // 2,
-                ),
-                self.cell_size // 2,
-            )
+class Game(Draw):
+    # Initialize the game
+    def start(self):
+        self.RESOLUTION = Vector2(
+            self.GRID.x * self.cell_size, self.GRID.y * self.cell_size
+        )
+        self.map = [
+            [Cell(Vector2(int(x), int(y))) for x in range(int(self.GRID.y))]
+            for y in range(int(self.GRID.x))
+        ]
+        for _ in range(10000):
+            self.create_world(water=self.water, forest=self.forest, land=self.land)
 
     # Tasks that run on every frame
     def tasks(self):
@@ -92,84 +47,33 @@ class Draw(World):
                 del self.prey_set[pos]
                 continue
 
-        # World
-        self.luminance
-
-    # Initializes the window and hears for events
-    def shit(self):
-        self.time += 1 / self.FPS
-        self.screen.fill(pygame.Color("white"))
-        self.surface.fill(pygame.Color("white"))
-        # print(self.clock.get_fps())
-        if self.run:
-            self.clock.tick(self.FPS)
-        elif self.prey_set or self.predator_set:
-            self.clock.tick()
-        else:
-            self.clock.tick()
-
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                pygame.quit()
-            elif event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_f:
-                    if self.run:
-                        self.run = False
-                        print("Uncaped FPS")
-                    else:
-                        self.run = True
-                        print(self.FPS)
-                if event.key == pygame.K_UP:
-                    self.run = True
-                    self.FPS += 1
-                    print(self.FPS)
-                if event.key == pygame.K_DOWN:
-                    self.run = True
-                    self.FPS -= 1
-                    print(self.FPS)
-
-    # show the fps in the window
-    def render_fps(self):
-        font = pygame.font.Font(None, 36)
-        fps = font.render(str(int(self.clock.get_fps())), True, pygame.Color("black"))
-        self.screen.blit(fps, (0, 0))
-        pygame.display.flip()
-
-    # Draw the stuff on window
-    def more_shit(self):
-        self.draw_entity()
-        self.screen.blit(self.surface, (0, 0))
-
-    # Main game loop
     def loop(self, draw=False):
         # Initialize the window
         self.shit()
         # Main logic
         self.calculate_fitness()
         self.tasks()
+        self.draw_entity()
 
         # Draw the stuff
         self.more_shit()
-        self.render_fps()
 
 
-test = Draw()
-test.populate()
-prey_population = test.prey_population
-prey_population.reporters.add(StdOutReporter(True))
-prey_statistics = StatisticsReporter()
+def initialize_populations(sim):
+    prey_population = sim.prey_population
+    prey_population.reporters.add(StdOutReporter(True))
+    prey_statistics = StatisticsReporter()
 
-# Add to predator_population
-predator_population = test.predator_population
-predator_population.reporters.add(StdOutReporter(True))
-predator_statistics = StatisticsReporter()
-# for generation in range(test.num_generations):
-while True:
-    test.populate()
-    while test.prey_set or test.predator_set:
-        test.loop()
+    predator_population = sim.predator_population
+    predator_population.reporters.add(StdOutReporter(True))
+    predator_statistics = StatisticsReporter()
 
-    print("Prey Populatiofn")
+    return prey_population, predator_population, prey_statistics, predator_statistics
+
+
+def update_prey_population(prey_population):
+    print("")
+    print("Prey Population")
     prey_population.reporters.start_generation(prey_population.generation)
     prey_population.population = prey_population.reproduction.reproduce(
         prey_population.config,
@@ -180,11 +84,14 @@ while True:
     prey_population.species.speciate(
         prey_population.config, prey_population.population, prey_population.generation
     )
-    prey_population.generation += 1
+    prey_population.generation += 0
     prey_population.reporters.end_generation(
         prey_population.config, prey_population.population, prey_population.species
     )
 
+
+def update_predator_population(predator_population):
+    print("")
     print("Predator Population")
     predator_population.reporters.start_generation(predator_population.generation)
     predator_population.population = predator_population.reproduction.reproduce(
@@ -193,18 +100,45 @@ while True:
         predator_population.config.pop_size,
         predator_population.generation,
     )
-    # Update species and handle stagnation
     predator_population.species.speciate(
         predator_population.config,
         predator_population.population,
         predator_population.generation,
     )
-
-    # Increment generation
     predator_population.generation += 1
-
     predator_population.reporters.end_generation(
         predator_population.config,
         predator_population.population,
         predator_population.species,
     )
+    sim.populate()
+    while sim.prey_set or sim.predator_set:
+        sim.loop()
+
+    update_prey_population(prey_population)
+    update_predator_population(predator_population)
+
+
+sim = Game()
+sim.menu()
+sim.start()
+sim.init_pygame()
+sim.populate()
+
+prey_population, predator_population, prey_statistics, predator_statistics = (
+    initialize_populations(sim)
+)
+if sim.num_generations is None:
+    while True:
+        sim.populate()
+        while sim.prey_set or sim.predator_set:
+            sim.loop()
+        update_prey_population(prey_population)
+        update_predator_population(predator_population)
+else:
+    for _ in range(int(sim.num_generations)):
+        sim.populate()
+        while sim.prey_set or sim.predator_set:
+            sim.loop()
+        update_prey_population(prey_population)
+        update_predator_population(predator_population)
