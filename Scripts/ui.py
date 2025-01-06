@@ -117,10 +117,22 @@ class Helper(World):
     def set_prey_population(self, value):
         self.prey_size = int(value)
         self.update_entry(self.prey_enter, int(value))
+        self.set_max_entity()
 
     def set_predator_population(self, value):
         self.predator_size = int(value)
         self.update_entry(self.predator_enter, int(value))
+        self.set_max_entity()
+
+    def set_world_cell_size(self, value):
+        self.cell_size = int(value)
+        self.update_entry(self.world_cell_enter, int(value))
+        self.world_size_slider_x.configure(to=int(1350 / self.cell_size))
+        self.world_size_slider_y.configure(to=int(710 / self.cell_size))
+        self.update_entry(self.world_size_enter_x, int(self.world_size_slider_x.get()))
+        self.update_entry(self.world_size_enter_y, int(self.world_size_slider_y.get()))
+        self.set_world_size_y(int(self.world_size_slider_y.get()))
+        self.set_world_size_x(int(self.world_size_slider_x.get()))
 
     def set_world_size_x(self, value):
         self.GRID.x = int(value)
@@ -159,6 +171,10 @@ class Helper(World):
         self.layout = self.layout_options.index(value)
         print(self.layout)
         self.set_max_entity()
+        self.prey_slider.configure(to=self.max_entity)
+        self.update_entry(self.prey_enter, int(self.prey_slider.get()))
+        self.predator_slider.configure(to=self.max_entity)
+        self.update_entry(self.predator_enter, int(self.predator_slider.get()))
 
 
 class Menu(Helper):
@@ -231,18 +247,49 @@ class Menu(Helper):
         )
         world_frame_title.grid(row=0, column=0, padx=20, pady=5, columnspan=3)
 
-        # World size x
-        world_size_label_x = CTkLabel(
+        # Set the cell size
+        world_cell_label = CTkLabel(
             world_frame,
-            text="World cells",
+            text="Size of one cell",
             font=parm_text_font,
             text_color=parm_text_color,
         )
-        world_size_label_x.grid(row=1, column=0, padx=20, pady=(5, 10), sticky="ns")
-        world_size_slider_x = CTkSlider(
+        world_cell_label.grid(row=1, column=0, padx=20, pady=(5, 10), sticky="ns")
+        world_cell_slider = CTkSlider(
+            world_frame,
+            from_=1,
+            to=20,
+            command=self.set_world_cell_size,
+            number_of_steps=20,
+            button_hover_color=button_hover_color,
+            width=slider_width,
+            border_width=slider_border_width,
+            orientation="horizontal",
+            progress_color=button_color,
+        )
+        world_cell_slider.grid(row=1, column=1, padx=20, pady=(5, 10), sticky="ns")
+        self.world_cell_enter = CTkEntry(
+            world_frame,
+            placeholder_text=self.cell_size,
+            fg_color=parm_fg_color,
+            text_color=parm_text_color,
+        )
+        self.world_cell_enter.insert(0, int(self.cell_size))
+        self.world_cell_enter.configure(state="disabled")
+        self.world_cell_enter.grid(row=1, column=2, padx=20, pady=(5, 10), sticky="ns")
+
+        # World size x
+        world_size_label_x = CTkLabel(
+            world_frame,
+            text="Number of cells along x-axis",
+            font=parm_text_font,
+            text_color=parm_text_color,
+        )
+        world_size_label_x.grid(row=2, column=0, padx=20, pady=(5, 10), sticky="ns")
+        self.world_size_slider_x = CTkSlider(
             world_frame,
             from_=10,
-            to=200,
+            to=(1400 // self.cell_size),
             command=self.set_world_size_x,
             number_of_steps=100,
             button_hover_color=button_hover_color,
@@ -251,7 +298,9 @@ class Menu(Helper):
             orientation="horizontal",
             progress_color=button_color,
         )
-        world_size_slider_x.grid(row=1, column=1, padx=20, pady=(5, 10), sticky="ns")
+        self.world_size_slider_x.grid(
+            row=2, column=1, padx=20, pady=(5, 10), sticky="ns"
+        )
         self.world_size_enter_x = CTkEntry(
             world_frame,
             placeholder_text=self.GRID.x,
@@ -261,21 +310,21 @@ class Menu(Helper):
         self.world_size_enter_x.insert(0, int(self.GRID.x))
         self.world_size_enter_x.configure(state="disabled")
         self.world_size_enter_x.grid(
-            row=1, column=2, padx=20, pady=(5, 10), sticky="ns"
+            row=2, column=2, padx=20, pady=(5, 10), sticky="ns"
         )
 
         # World size y
         world_size_label_y = CTkLabel(
             world_frame,
-            text="World size",
+            text="Number of cells along y-axis",
             font=parm_text_font,
             text_color=parm_text_color,
         )
-        world_size_label_y.grid(row=2, column=0, padx=20, pady=(5, 10), sticky="ns")
-        world_size_slider_y = CTkSlider(
+        world_size_label_y.grid(row=3, column=0, padx=20, pady=(5, 10), sticky="ns")
+        self.world_size_slider_y = CTkSlider(
             world_frame,
             from_=10,
-            to=100,
+            to=(1100 // self.cell_size),
             command=self.set_world_size_y,
             number_of_steps=100,
             button_hover_color=button_hover_color,
@@ -283,7 +332,9 @@ class Menu(Helper):
             border_width=slider_border_width,
             progress_color=button_color,
         )
-        world_size_slider_y.grid(row=2, column=1, padx=20, pady=(5, 10), sticky="ns")
+        self.world_size_slider_y.grid(
+            row=3, column=1, padx=20, pady=(5, 10), sticky="ns"
+        )
         self.world_size_enter_y = CTkEntry(
             world_frame,
             placeholder_text=self.GRID.y,
@@ -294,7 +345,7 @@ class Menu(Helper):
         self.world_size_enter_y.insert(0, int(self.GRID.y))
         self.world_size_enter_y.configure(state="disabled")
         self.world_size_enter_y.grid(
-            row=2, column=2, padx=20, pady=(5, 10), sticky="ns"
+            row=3, column=2, padx=20, pady=(5, 10), sticky="ns"
         )
 
         # terrain configuration
@@ -609,7 +660,7 @@ class Draw(Menu):
     def render_fps(self):
         font = pygame.font.Font(None, 36)
         fps = font.render(str(int(self.clock.get_fps())), True, pygame.Color("black"))
-        self.screen.blit(fps, (0, (self.GRID.y - 2) * self.cell_size))
+        self.screen.blit(fps, (0, 0))
         pygame.display.flip()
 
     # Draw the stuff on window

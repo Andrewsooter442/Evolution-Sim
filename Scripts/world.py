@@ -46,7 +46,7 @@ class World:
         # Layout
         self.layout_options = ["Random", "Half Seperated", "Quadrants Seperated"]
         # Index of the layout_options to use
-        self.layout = 1
+        self.layout = 0
         self.max_entity = int(self.GRID.x * self.GRID.y * (3 / 8)) // 2
 
         # Entities
@@ -70,7 +70,7 @@ class World:
 
     def set_max_entity(self):
         if self.layout == 2:
-            self.max_entity = int(self.GRID.x * self.GRID.y * (3 / 8)) // (3 * 4)
+            self.max_entity = int(self.GRID.x * self.GRID.y * (3 / 7)) // (2 * 4)
         else:
             self.max_entity = int(self.GRID.x * self.GRID.y * (3 / 8)) // 2
         if self.prey_size > self.max_entity:
