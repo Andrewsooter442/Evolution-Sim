@@ -13,7 +13,7 @@ class Game(Draw):
             [Cell(Vector2(int(x), int(y))) for x in range(int(self.GRID.y))]
             for y in range(int(self.GRID.x))
         ]
-        for _ in range(10000):
+        for _ in range(3000):
             self.create_world(water=self.water, forest=self.forest, land=self.land)
 
     # Tasks that run on every frame

@@ -27,7 +27,7 @@ To run the simulation on Linux or macOS:
 
 2. Clone the repository:
     ```sh
-    git clone https://github.com/sdswoc/natural_selection_simulator.git
+    git clone https://github.com/Andrewsooter442/Evolution-Sim.git
     cd Natural-Selection-Simulator
     ```
 
