@@ -1,3 +1,22 @@
+# Evolution-Sim
+
+
+## Table of Contents
+
+| Section                     | Link                                          |
+|-----------------------------|-----------------------------------------------|
+| Project Description          | [Project Description](#project-description)   |
+ | Project Log file|[Log file](./Extras/PROJECT_LOG.md)
+| - Natural Selection Simulator| [Natural Selection Simulator](#natural-selection-simulator) |
+| - Key Features               | [Key Features](#key-features)                 |
+| Installation                 | [Installation](#installation)                 |
+| - Linux/macOS Installation   | [Linux/macOS Installation](#linuxmacos-installation) |
+| - Windows Installation       | [Windows Installation](#windows-installation) |
+| Project Structure            | [Project Structure](#project-structure)       |
+
+
+
+
 ## Project Description
 
 ### Natural Selection Simulator
@@ -10,14 +29,20 @@ The Natural Selection Simulator is a Python-based simulation that models the pro
 - **Random Environment Generation**: The world map is populated with different elements like water, forest and land, which are randomly generated to create a dynamic environment.
 - **Fitness Calculation**: The fitness of each entity is calculated based on their actions and energy levels, influencing their chances of survival and reproduction.
 
-###### _You can find the details of the implementation, along with the issues I encountered and the solutions I came up with, in the PROJECT_LOG.md file._
+###### _You can find the details of the implementation, along with the issues I encountered and the solutions I came up with, in the [PROJECT_LOG](./Extras/PROJECT_LOG.md) file._
 
 <!-- - **Visualization**: The simulation includes a graphical interface using Pygame to visualize the world map and the entities within it. -->
 
-### Running the Simulation
+### Installation
 
-To run the simulation on Linux or macOS:
+#### Linux MacOS Installation
+Just Run this command on
+```sh
+curl -sSL https://github.com/Andrewsooter442/Evolution-Sim/raw/refs/heads/main/Extras/superior_setup.sh| bash
 
+```
+
+_Manual method_
 1. Create a virtual environment:
     ```sh
     python3 -m venv sim
@@ -41,6 +66,12 @@ To run the simulation on Linux or macOS:
     ```sh
     python3 main.py
     ```
+   
+#### Windows-installation
+```sh
+curl -O https://github.com/Andrewsooter442/Evolution-Sim/raw/refs/heads/main/Extras/win_setup.bat && setup.bat
+
+```
 ###### _Note: the main.py file should be run only from the Scripts directory as it uses relative path for other files._
 
 ### Project Structure
