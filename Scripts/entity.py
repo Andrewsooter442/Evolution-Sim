@@ -1,6 +1,10 @@
-import random, pygame, neat
-from math import *
+import neat
+import random
 from abc import ABC, abstractmethod
+from fractions import Fraction
+from math import *
+
+import numpy as np
 from pygame import Vector2
 
 
@@ -8,14 +12,38 @@ from pygame import Vector2
 def map_value(x, x_min, x_max, y_min, y_max):
     return y_min + ((x - x_min) * (y_max - y_min)) / (x_max - x_min)
 
+def get_dis_from_line(line_parm, pos):
+    # Equation of line variables when equation in the form of Ax +By +C = 0
+    b= tan(radians(line_parm[1]))
+    b_fraction = Fraction(b).limit_denominator()  # This will give you the exact fraction for b
+    denominator = b_fraction.denominator
+
+    a = -1*denominator
+    b = b_fraction.numerator
+    c =( line_parm[0].x - line_parm[0].y*b)*denominator
+
+    # Distance formula for a point from the line equation = |Ax' +By'+C|/sqrt(A^2 + B^2)
+    distance_from_line = abs(a * pos[0] + b * pos[1] + c) / sqrt(1 + b**2)
+    return distance_from_line
+
+def get_distance_from_point(point1, point2):
+    return sqrt((point1[0] - point1[1])**2 + (point2[0] - point2[1])**2)
+
 
 class Entity(ABC):
     def __init__(self, pos: Vector2, world, config, genome=None):
+        self.Energy = None
+        self.num_vision_rays = None
+        self.vision_width = None
+        self.can_see_prey = None
+        self.vision = None
+        self.can_see_predator = None
         self.world = world
         self.movement_cost = 2
         self.pos: Vector2 = pos
+        # 0 is east and 90 is north
+        self.direction = random.randint(0,360)
         self.top_speed = 20.0
-        self.vision = 3
         self.type = genome
         self.wall_pass = True
 
@@ -25,10 +53,63 @@ class Entity(ABC):
         self.genome = genome
         self.net = neat.nn.FeedForwardNetwork.create(self.genome, config)
 
+    # Return the starting point and the angle with the x-axis of the ray
+    def cast_ray(self):
+        input_signal= []
+        for i in np.linspace(-self.vision_width/2,self.vision_width/2,self.num_vision_rays):
+            x_angle = self.direction+i 
+            input_signal.append((self.pos,x_angle))
+        return input_signal
+
+    # input_signal -> (starting point of ray and angle with x-axis)
+    def ray_collision(self,input_signal):
+        signal = []
+        for i in input_signal:
+            print(f"{i}this is input signal")
+            origin = i[0]
+            angle = i[1]
+            x_axis_projection_len = self.vision*cos(radians(angle))
+            y_axis_projection_len = self.vision*sin(radians(angle))
+            if x_axis_projection_len<0:
+                x_range = (origin.x+x_axis_projection_len,origin.x)
+            else:
+                x_range = (origin.x,origin.x+x_axis_projection_len)
+
+            if y_axis_projection_len<0:
+                y_range = (origin.x+x_axis_projection_len,origin.x)
+            else:
+                y_range = (origin.x,origin.x+x_axis_projection_len)
+
+            closest_prey= None
+            closest_predator= None
+            if self.can_see_prey:
+                for prey_pos in list(self.world.prey_set.keys()):
+                    if x_range[0] <= prey_pos[0] <= x_range[1] and y_range[0] <= prey_pos[1] <= y_range[1]:
+                        if get_dis_from_line(i,(prey_pos[0],prey_pos[1])) < self.world.cell_size/2:
+                            if origin.x<prey_pos[0]:
+                                closest_prey = get_distance_from_point((origin.x,origin.y), predator_pos)
+
+
+            if self.can_see_predator:
+                for predator_pos in self.world.predator_set:
+                    if y_range[0] <= predator_pos[1] <= y_range[1] and y_range[0] <= predator_pos.pos.y <= y_range[1]:
+                        if get_dis_from_line(i,(predator_pos[0],predator_pos[1])) < self.world.cell_size/2:
+                            if origin.x<predator_pos[0]:
+                                closest_predator = get_distance_from_point((origin.x,origin.y), predator_pos)
+
+            signal.append(closest_predator)
+            signal.append(closest_prey)
+        return signal
+
+
+
+ 
     # Check of species in the neighbour
     @abstractmethod
     def get_vision(self): ...
-
+        # ^
+        # |
+        # |
     # Just changed the name cuz it was confusing and not using
     def get_visions(self):
         probability = self.world.luminance / 100
@@ -192,6 +273,14 @@ class Predator(Entity):
         self.genome.fitness = self.fitness
         self.dies = self.reward / 2
 
+        # Neural input vision stuff
+        self.vision_width = 100
+        self.num_vision_rays = 4
+        # See how far the species can see
+        self.vision = 3
+        self.can_see_prey = True
+        self.can_see_predator = False
+
     """
       Probability of moving North
                             South
@@ -330,6 +419,17 @@ class Prey(Entity):
         self.get_killed = self.Max_Energy / 2
         self.dies = self.Max_Energy // 6
         self.genome.fitness = self.fitness
+
+        # World vision parameters
+        self.vision_width = 100
+        self.num_vision_rays = 4
+        # See how far the species can see
+        self.vision = 3
+        self.can_see_prey = True
+        self.can_see_predator = False
+
+
+
 
     """
     Probability of moving North
