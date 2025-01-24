@@ -646,6 +646,12 @@ class Draw(Menu):
                         self.run = False
                     else:
                         self.run = True
+                if event.key == pygame.K_g:
+                    if self.update_graph:
+                        self.update_graph= False
+                    else:
+                        self.update_graph= True
+
                 if event.key == pygame.K_UP:
                     self.run = True
                     self.FPS += 1
