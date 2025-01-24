@@ -10,6 +10,7 @@
 | - Natural Selection Simulator| [Natural Selection Simulator](#natural-selection-simulator) |
 | - Key Features               | [Key Features](#key-features)                 |
 | Installation                 | [Installation](#installation)                 |
+| Running | [Run](#running-after-installation)
 | - Linux/macOS Installation   | [Linux/macOS Installation](#linuxmacos-installation) |
 | - Windows Installation       | [Windows Installation](#windows-installation) |
 | Project Structure            | [Project Structure](#project-structure)       |
@@ -42,7 +43,9 @@ curl -sSL https://github.com/Andrewsooter442/Evolution-Sim/raw/refs/heads/main/E
 
 ```
 
-_Manual method_
+**_Manual method_**
+
+_Using python virtual environment (Can be buggy and not work)_
 1. Create a virtual environment:
     ```sh
     python3 -m venv sim
@@ -67,11 +70,62 @@ _Manual method_
     python3 main.py
     ```
    
-#### Windows-installation
+_Using Conda (Recommended for better dependency management)_
+
+1. Create a Conda environment:
+    ```sh
+    conda create -n Evolution-Sim python=3.13
+    ```
+
+2. Activate the Conda environment:
+    ```sh
+    conda activate Evolution-Sim
+    ```
+
+3. Clone the repository:
+    ```sh
+    git clone https://github.com/Andrewsooter442/Evolution-Sim.git
+    cd Evolution-Sim
+    ```
+
+4. Install the required dependencies:
+    If the repository includes an `environment.yml` file:
+    ```sh
+    conda env update -f environment.yml
+    ```
+    Alternatively, if the `environment.yml` file is not available, you can install dependencies using `pip`:
+    ```sh
+    pip install -r requirements.txt
+    ```
+
+5. Navigate to the `Scripts` directory:
+    ```sh
+    cd Scripts
+    ```
+
+6. Run the main script:
+    ```sh
+    python main.py
+    ```
+
+
+   
+#### Windows installation
 ```sh
 curl -O https://github.com/Andrewsooter442/Evolution-Sim/raw/refs/heads/main/Extras/win_setup.bat && setup.bat
 
 ```
+
+### Running after installation
+
+#### For Linux and Macos
+
+
+#### For Windows 
+
+
+
+
 ###### _Note: the main.py file should be run only from the Scripts directory as it uses relative path for other files._
 
 ### Project Structure

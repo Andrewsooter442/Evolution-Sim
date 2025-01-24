@@ -7,12 +7,14 @@ reset_on_extinction   = False
 [DefaultGenome]
 # node activation options
 activation_default      = sigmoid
-activation_mutate_rate  = 0.2
+activation_mutate_rate  = 0.0
+ # probability of switching the activation to |
 activation_options      = sigmoid
 
 # node aggregation options
 aggregation_default     = sum
 aggregation_mutate_rate = 0.0
+# probability that the aggregation_defualt will change to something else like product
 aggregation_options     = sum
 
 # node bias options
@@ -21,34 +23,39 @@ bias_init_stdev         = 1.0
 bias_max_value          = 30.0
 bias_min_value          = -30.0
 bias_mutate_power       = 0.5
+#This controls the amount of change (the "power") that can occur when a bias undergoes mutation.
 bias_mutate_rate        = 0.7
+#This defines how frequently the biases will mutate during evolution.
 bias_replace_rate       = 0.1
+#This controls how frequently the biases will be completely replaced by a new random value during mutation.
 
 # genome compatibility options
 compatibility_disjoint_coefficient = 1.0
+#This coefficient controls how much weight is given to the number of disjoint genes (genes that are present in one genome but not the other) when calculating genome compatibility
 compatibility_weight_coefficient   = 0.5
+#This coefficient controls how much weight is given to the difference in weights of genes that are matching between two genomes.
 
 # connection add/remove rates
-conn_add_prob           = 0.7
+conn_add_prob           = 0.5
 conn_delete_prob        = 0.4
 
 # connection enable options
 enabled_default         = True
-enabled_mutate_rate     = 0.01
+enabled_mutate_rate     = 0.1
 
 feed_forward            = True
-initial_connection      = partial 0.3
+initial_connection      = partial 0.2
 
 # node add/remove rates
-node_add_prob           = 0.7
-node_delete_prob        = 0.4
+node_add_prob           = 0.5
+node_delete_prob        = 0.3
 
 # network parameters
-num_hidden              =0
-num_inputs              = 9
-num_outputs             = 5
+num_hidden              = 0
+num_inputs              = 16
+num_outputs             = 8
 
-
+# Don't touch
 # node response options
 response_init_mean      = 1.0
 response_init_stdev     = 0.0
@@ -68,14 +75,15 @@ weight_mutate_rate      = 0.8
 weight_replace_rate     = 0.1
 
 [DefaultSpeciesSet]
-compatibility_threshold = 2.5
+compatibility_threshold = 2.0
 
 [DefaultStagnation]
-species_fitness_func = max
-max_stagnation       = 10
-species_elitism      = 3
+species_fitness_func = mean
+max_stagnation       = 7
+species_elitism      = 20
+#This specifies how many of the best individuals from each species should be preserved through elitism.
 
 [DefaultReproduction]
-elitism            = 3
-survival_threshold = 0.2
-
+elitism            = 5
+#This determines how many of the best genomes from the population will be preserved without mutation or crossover.
+survival_threshold = 0.4
