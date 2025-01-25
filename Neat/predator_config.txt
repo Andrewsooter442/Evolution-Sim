@@ -52,7 +52,7 @@ node_delete_prob        = 0.3
 
 # network parameters
 num_hidden              = 0
-num_inputs              = 16
+num_inputs              = 17
 num_outputs             = 8
 
 # Don't touch

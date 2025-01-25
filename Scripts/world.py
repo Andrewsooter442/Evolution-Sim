@@ -299,6 +299,7 @@ class World:
                         self.map[x][y].element = "Land"
 
     def populate(self):
+        self.num_frames=0
         # Populate with Prey
         self.prey_config = neat.Config(
             neat.DefaultGenome,

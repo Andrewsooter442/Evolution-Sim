@@ -30,6 +30,16 @@ def get_dis_from_line(line_parm, pos):
 def get_distance_from_point(point1, point2):
     return sqrt((point1[0] - point1[1])**2 + (point2[0] - point2[1])**2)
 
+def get_neighbour(pos):
+    x = pos.x
+    y  = pos.y
+    neighbors = [
+        (x - 1, y - 1), (x, y - 1), (x + 1, y - 1),  # Top-left, Top, Top-right
+        (x - 1, y),                   (x + 1, y),     # Left, Right
+        (x - 1, y + 1), (x, y + 1), (x + 1, y + 1)   # Bottom-left, Bottom, Bottom-right
+    ]
+    return neighbors
+
 
 class Entity(ABC):
     def __init__(self, pos: Vector2, world, config, genome=None):
@@ -62,7 +72,6 @@ class Entity(ABC):
             x_angle = self.direction+i 
             input_signal.append((self.pos,x_angle))
         return input_signal
-
     # input_signal -> (starting point of ray and angle with x-axis)
     def ray_collision(self,input_signal):
         signal = []
@@ -295,7 +304,7 @@ class Entity(ABC):
         if self.world.map[x][y].element == "Water":
             region = [0, 0, 1]
 
-        # to_ret += entity_info
+        to_ret += entity_info
         # to_ret += luminance
         to_ret += entity_vision
         # to_ret += region
@@ -322,8 +331,6 @@ class Entity(ABC):
                 self.move_and_collide(Vector2(1, -1), 1)
             case 7:
                 self.move_and_collide(Vector2(-1, 1), 1)
-            case 4:
-                self.move_and_collide(Vector2(0, 0), 1)
         """Implement the killing mechanism"""
 
     # Use the neural network to make a decision based on inputs
@@ -341,13 +348,17 @@ class Predator(Entity):
         self.speed = 1
         self.type = "Predator"
         self.exists = 1
-        self.Max_Energy = sqrt(2 * self.world.GRID.x**2) * (
-            self.movement_cost + self.exists
-        )
+        self.Max_Energy = sqrt(2 * self.world.GRID.x**2) * (self.movement_cost+self.exists)
         self.Energy = self.Max_Energy
-        self.eat_gain = self.Max_Energy // 2
+        self.eat_gain = self.Max_Energy // 3
         self.fitness = 0
-        self.reward = 50
+        self.health=100
+        self.max_health = 100
+        self.healing_rate = 1
+        self.reward = 40
+        self.damage = self.health//2
+        self.prey_req = 2
+        self.fitness_cost_killed_by_prey = 40
         self.genome.fitness = self.fitness
         self.dies = self.reward / 2
 
@@ -371,22 +382,7 @@ class Predator(Entity):
         if self.Energy > self.Max_Energy:
             self.Energy = self.Max_Energy
 
-    # def preform_action(self, output):
-    #     max_index = output.index(max(output))
-    #     match max_index:
-    #         case 0:
-    #             self.move_and_collide(Vector2(0, -1), 1)
-    #         case 1:
-    #             self.move_and_collide(Vector2(0, 1), 1)
-    #         case 2:
-    #             self.move_and_collide(Vector2(1, 0), 1)
-    #         case 3:
-    #             self.move_and_collide(Vector2(-1, 0), 1)
-    #         case 4:
-    #             self.move_and_collide(Vector2(0, 0), 1)
-    #     """Implement the killing mechanism"""
 
-    # Move and kill
     # set the fitness function of prey if it is killed
     def move_and_collide(self, direction: Vector2, speed):
         # Move
@@ -403,15 +399,35 @@ class Predator(Entity):
                 pos.y += self.world.GRID.y
 
         if (
-            (pos.x, pos.y) not in self.world.predator_set
-            and self.world.GRID.x > pos[0] >= 0
+            (pos.x, pos.y) not in self.world.predator_set and
+            self.world.GRID.x > pos[0] >= 0
             and self.world.GRID.y > pos[1] >= 0
         ):
-            del self.world.predator_set[(self.pos.x, self.pos.y)]
+            if  (self.pos.x, self.pos.y) in self.world.predator_set:
+                del self.world.predator_set[(self.pos.x, self.pos.y)]
             self.pos = pos
             self.num_steps+=1
             self.world.predator_set[(self.pos.x, self.pos.y)] = self
             self.Energy -= self.movement_cost
+
+
+        # Attacked be prey
+        prey_count = 0
+        neighbours = get_neighbour(pos)
+        prey_req = self.prey_req
+        for neighbour in neighbours:
+            if neighbour in self.world.predator_set:
+                prey_req += 1
+
+            if neighbour in self.world.prey_set:
+                prey_count += 1
+
+        if prey_count > prey_req:
+            self.health -= self.damage*prey_count//self.prey_req
+        if self.health <= 0:
+            inc = self.num_steps * 50 / (self.world.num_frames+1)
+            self.genome.fitness = self.fitness - self.fitness_cost_killed_by_prey + inc
+            del self.world.predator_set[(self.pos.x, self.pos.y)]
 
         # Eat prey
         if (self.pos.x, self.pos.y) in self.world.prey_set:
@@ -421,9 +437,11 @@ class Predator(Entity):
             # prey.fitness -= prey.get_killed / self.world.time
             prey.fitness = prey.Max_Energy - prey.Energy
             prey.fitness += prey.num_steps
+            self.health -= self.damage
             # Map the value of fitness to 0-90 cuz it got eaten by predator
             prey.fitness = map_value(prey.fitness, 0, prey.Max_Energy, 0, 90)
             prey.genome.fitness = prey.fitness
+
             del self.world.prey_set[(self.pos.x, self.pos.y)]
 
             # Predator
@@ -532,15 +550,15 @@ class Prey(Entity):
         self.speed = 1
         self.type = "Prey"
         self.fitness = 100
-        self.movement_cost = 0
-        self.exists = 1
+        self.exists = 0.5
         self.Max_Energy = (
-            sqrt(2 * self.world.GRID.x**2) * (self.movement_cost + self.exists) * 2
+            sqrt(2 * self.world.GRID.x**2) * (self.movement_cost + self.exists*2) * 2
         )
         self.Energy = self.Max_Energy
         self.get_killed = self.Max_Energy / 2
         self.dies = self.Max_Energy // 6
         self.genome.fitness = self.fitness
+        self.num_steps = 0
 
         # World vision parameters
         self.vision_width = 100
@@ -585,15 +603,17 @@ class Prey(Entity):
                 pos.y += self.world.GRID.y
 
         if (
-            (pos.x, pos.y) not in self.world.prey_set
-            and self.world.GRID.x > pos[0] >= 0
+            (pos.x, pos.y) not in self.world.prey_set and
+                self.world.GRID.x > pos[0] >= 0
             and self.world.GRID.y > pos[1] >= 0
         ):
-            del self.world.prey_set[(self.pos.x, self.pos.y)]
+            if (self.pos.x,self.pos.y) in self.world.prey_set:
+                del self.world.prey_set[(self.pos.x, self.pos.y)]
             self.pos = pos
             self.num_steps+=1
             self.Energy -= self.movement_cost
             self.world.prey_set[(self.pos.x, self.pos.y)] = self
+            self.num_steps +=1
 
     # def get_vision(self):
     #     # probability = self.world.luminance / 100

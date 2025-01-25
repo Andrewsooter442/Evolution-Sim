@@ -81,11 +81,16 @@ class Game(Draw):
         for pos in keys:
             if pos in self.predator_set.keys():
                 predator = self.predator_set[pos]
+                predator.health+=predator.healing_rate
+                if predator.health>predator.max_health:
+                    predator.health = predator.max_health
                 predator.Energy -= predator.exists
                 if predator.Energy > predator.Max_Energy:
                     predator.Energy = predator.Max_Energy
                 if predator.Energy <= 0:
-                    predator.fitness += predator.num_steps * 100 / self.num_frames
+                    # The number 50 is used after a lot of testing don't change or switch it back after testing
+                    inc = predator.num_steps * 50 / self.num_frames
+                    predator.fitness += inc
                     if predator.num_steps < 10:
                         predator.fitness -= 10
                     # predator.fitness -= predator.dies / self.time
@@ -99,8 +104,11 @@ class Game(Draw):
         key = list(self.prey_set.keys())
         for pos in key:
             prey = self.prey_set[pos]
+            # Remember to remove this
+            prey.Energy -= prey.exists
+
             if not self.predator_set:
-                prey.Energy -= prey.exists
+                prey.Energy -= prey.exists*2
             if prey.Energy > prey.Max_Energy:
                 prey.Energy = prey.Max_Energy
             if prey.Energy <= 0:
@@ -212,9 +220,9 @@ sim.menu()
 sim.start()
 sim.init_pygame()
 sim.populate()
-sim.initialize_plot_prey_and_predator_population()
 sim.initialize_plot_prey_and_predator_evolution()
 sim.initialize_plot_prey_and_predator_num_species()
+sim.initialize_plot_prey_and_predator_population()
 prey_population, predator_population, prey_statistics, predator_statistics = (
     initialize_populations(sim)
 )

@@ -1,8 +1,16 @@
 # Evolution-Sim
 
+![Ui](./Extras/Samples/UI.png)
+**_Watch this for a better understanding_**
+[![Simulation](./Extras/Samples/Sim_screen.png)](https://youtu.be/-wZjmAEtzoE )
+
+[//]: # ([Watch the video on YouTube])
+
+![Screenshot 2025-01-25 at 10.59.18 AM copy.png](Extras/Samples/Screenshot%202025-01-25%20at%2010.59.18%E2%80%AFAM%20copy.png)
+
+
 
 ## Table of Contents
-
 | Section                     | Link                                          |
 |-----------------------------|-----------------------------------------------|
 | Project Description          | [Project Description](#project-description)   |
