@@ -1,4 +1,4 @@
-
+import os,json
 import neat
 import random
 from abc import ABC, abstractmethod
@@ -31,7 +31,6 @@ def get_distance_from_point(point1, point2):
     return sqrt((point1[0] - point1[1])**2 + (point2[0] - point2[1])**2)
 
 
-
 class Entity(ABC):
     def __init__(self, pos: Vector2, world, config, genome=None):
         self.Energy = None
@@ -39,7 +38,7 @@ class Entity(ABC):
         self.num_vision_rays = None
         self.vision_width = None
         self.can_see_prey = None
-        self.vision = None
+        self.vision = 10
         self.can_see_predator = None
         self.world = world
         self.movement_cost = 2
@@ -250,10 +249,8 @@ class Entity(ABC):
 
         to_ret += to_ret_prey
         to_ret += to_ret_predator
+
         # print(f"to_ret_prey: {to_ret_prey}, to_ret_predator: {to_ret_predator}")
-        # print(f"to_ret: {to_ret}")
-        if to_ret[0]==1:
-            print(f" this to_ret: {to_ret}")
 
         return to_ret
 
@@ -358,7 +355,6 @@ class Predator(Entity):
         self.vision_width = 100
         self.num_vision_rays = 4
         # See how far the species can see
-        self.vision = 3
         self.can_see_prey = True
         self.can_see_predator = False
 
@@ -550,7 +546,6 @@ class Prey(Entity):
         self.vision_width = 100
         self.num_vision_rays = 4
         # See how far the species can see
-        self.vision = 3
         self.can_see_prey = True
         self.can_see_predator = False
 

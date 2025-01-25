@@ -70,7 +70,9 @@ class World:
         # Algorithm
         self.num_generations = None
 
+        # Update function written in main update prey static method
         # Data
+        self.number_of_generations = 0
         self.num_frames = 0
         self.show_plot_NG = False # Number of generation vs fitness
         self.show_plot_PF = False # Population vs frames
@@ -90,7 +92,8 @@ class World:
         # Prey
         # For plot of No of generation vs these stuff
         self.prey_avg_fitness = []
-        self.prey_best_fitness = []
+        self.prey_max_fitness = []
+        self.prey_num_species =[]
 
         # For plot of population vs frames
         self.prey_population_size = []
@@ -98,8 +101,9 @@ class World:
 
         # Predator
         # For plot of No of generation vs these stuff
-        self.predator_best_fitness = []
+        self.predator_max_fitness = []
         self.predator_avg_fitness = []
+        self.predator_num_species = []
         # For plot of population vs frame
         self.predator_population_size = []
         self.fig_predator_pop = None
@@ -116,9 +120,9 @@ class World:
         self.fig_prey_pop, self.ax_prey_pop = plt.subplots()
 
         # Initialize the lines for prey and predator populations
-        self.line_prey_pop, = self.ax_prey_pop.plot([], [], label="Prey Population", color="royalblue", linewidth=1.5)
+        self.line_prey_pop, = self.ax_prey_pop.plot([], [], label="Prey Population", color="royalblue", linewidth=0.5)
         self.line_predator_pop, = self.ax_prey_pop.plot([], [], label="Predator Population", color="darkorange",
-                                                        linewidth=1.5)
+                                                        linewidth=0.5)
 
         self.ax_prey_pop.set_xlim(0, 100)  # Initial x-axis limit
         self.ax_prey_pop.set_ylim(0, 1000)  # Initial y-axis limit
@@ -131,12 +135,12 @@ class World:
         plt.ion()
         plt.show()
 
-    def update_plot_population(self, line_prey, line_predator, x_axis, y_axis_prey, y_axis_predator, ax):
+    def update_plot_population(self, line_prey, line_predator, x_axis, y_axis_prey, y_axis_predator, ax,save_path):
         """Update the plot dynamically with both prey and predator populations."""
         # Update data for both lines
         line_prey.set_data(x_axis, y_axis_prey)
         line_predator.set_data(x_axis, y_axis_predator)
-        # Adjust x and y axis dynamically if necessary
+        # Adjust x and y-axis dynamically if necessary
         if len(x_axis) > ax.get_xlim()[1] - 10:  # Add buffer to x-axis
             ax.set_xlim(0, len(x_axis) + 10)
         if max(y_axis_prey) > ax.get_ylim()[1] - 50:  # Add buffer to y-axis for prey
@@ -146,15 +150,15 @@ class World:
 
         plt.draw()  # Redraw the plot
 
-    def initialize_plot_prey_and_predator_generation(self):
+    def initialize_plot_prey_and_predator_evolution(self):
         """Initializes the plot for real-time evolution graph"""
         self.fig_entity_evolution, self.ax_entity_evolution= plt.subplots()
 
         # Initialize the lines for prey and predator populations
-        self.line_prey_avg_fitness, = self.ax_entity_evolution.plot([], [], label="Prey Avg fitness", color="royalblue", linewidth=1.5)
-        self.line_prey_max_fitness, = self.ax_entity_evolution.plot([], [], label="Prey Max fitness", color="darkblue", linewidth=1.5)
-        self.line_predator_max_fitness, = self.ax_entity_evolution.plot([], [], label="Predator Max fitness", color="pink",linewidth=1.5)
-        self.line_predator_avg_fitness, = self.ax_entity_evolution.plot([], [], label="Predator Avg fitness", color="black",linewidth=1.5)
+        self.line_prey_avg_fitness, = self.ax_entity_evolution.plot([], [], label="Prey Avg fitness", color="royalblue", linewidth=0.5)
+        self.line_prey_max_fitness, = self.ax_entity_evolution.plot([], [], label="Prey Max fitness", color="darkblue", linewidth=0.5)
+        self.line_predator_max_fitness, = self.ax_entity_evolution.plot([], [], label="Predator Max fitness", color="red",linewidth=0.5)
+        self.line_predator_avg_fitness, = self.ax_entity_evolution.plot([], [], label="Predator Avg fitness", color="pink",linewidth=0.5)
 
         self.ax_entity_evolution.set_xlim(0, 10)  # Initial x-axis limit
         self.ax_entity_evolution.set_ylim(0, 110)  # Initial y-axis limit
@@ -167,38 +171,78 @@ class World:
         plt.ion()
         plt.show()
 
-    def update_plot_entity_evolution(self,
-                                     x_axis,
-                                     avg_fitness_prey, max_fitness_prey,
-                                     avg_fitness_predator, max_fitness_predator):
+    def update_plot_entity_evolution(self,save_path):
         """Update the plot for entity evolution (prey and predator fitness over generations)."""
         # Update the data for the lines on the plot
-        self.line_prey_avg_fitness.set_data(x_axis, avg_fitness_prey)
-        self.line_prey_max_fitness.set_data(x_axis, max_fitness_prey)
-        self.line_predator_avg_fitness.set_data(x_axis, avg_fitness_predator)
-        self.line_predator_max_fitness.set_data(x_axis, max_fitness_predator)
+        x_axis = [i for i in range(self.number_of_generations)]
+        self.line_prey_avg_fitness.set_data(x_axis, self.prey_avg_fitness)
+        self.line_prey_max_fitness.set_data(x_axis, self.prey_max_fitness)
+        self.line_predator_avg_fitness.set_data(x_axis, self.predator_avg_fitness)
+        self.line_predator_max_fitness.set_data(x_axis, self.predator_max_fitness)
 
         # Dynamically adjust x-axis if the data exceeds the initial limit
-        if len(x_axis) > self.ax_entity_evolution.get_xlim()[1] - 1:  # Add buffer to x-axis
-            self.ax_entity_evolution.set_xlim(0, len(x_axis) + 1)
+        if len([i for i in range(self.number_of_generations)]) > self.ax_entity_evolution.get_xlim()[
+            1] - 1:  # Add buffer to x-axis
+            self.ax_entity_evolution.set_xlim(0, len([i for i in range(self.number_of_generations)]) + 1)
 
         # Dynamically adjust y-axis if the values exceed the initial limit
-        if max(avg_fitness_prey) > self.ax_entity_evolution.get_ylim()[
+        if max(self.prey_avg_fitness) > self.ax_entity_evolution.get_ylim()[
             1] - 10:  # Add buffer to y-axis for prey avg fitness
-            self.ax_entity_evolution.set_ylim(0, max(avg_fitness_prey) + 10)
-        if max(max_fitness_prey) > self.ax_entity_evolution.get_ylim()[
+            self.ax_entity_evolution.set_ylim(0, max(self.prey_avg_fitness) + 10)
+        if max(self.prey_max_fitness) > self.ax_entity_evolution.get_ylim()[
             1] - 10:  # Add buffer to y-axis for prey max fitness
-            self.ax_entity_evolution.set_ylim(0, max(max_fitness_prey) + 10)
-        if max(avg_fitness_predator) > self.ax_entity_evolution.get_ylim()[
+            self.ax_entity_evolution.set_ylim(0, max(self.prey_max_fitness) + 10)
+        if max(self.predator_avg_fitness) > self.ax_entity_evolution.get_ylim()[
             1] - 10:  # Add buffer to y-axis for predator avg fitness
-            self.ax_entity_evolution.set_ylim(0, max(avg_fitness_predator) + 10)
-        if max(max_fitness_predator) > self.ax_entity_evolution.get_ylim()[
+            self.ax_entity_evolution.set_ylim(0, max(self.predator_avg_fitness) + 10)
+        if max(self.predator_max_fitness) > self.ax_entity_evolution.get_ylim()[
             1] - 10:  # Add buffer to y-axis for predator max fitness
-            self.ax_entity_evolution.set_ylim(0, max(max_fitness_predator) + 10)
+            self.ax_entity_evolution.set_ylim(0, max(self.predator_max_fitness) + 10)
 
         # Redraw the plot and update it
         plt.draw()
 
+    def initialize_plot_prey_and_predator_num_species(self):
+        self.fig_entity_species, self.ax_entity_species= plt.subplots()
+
+        # Initialize the lines for prey and predator populations
+        self.line_prey_species, = self.ax_entity_species.plot([], [], label="Number of Prey species ", color="darkblue",
+                                                                    linewidth=0.5)
+        self.line_predator_species, = self.ax_entity_species.plot([], [], label="Number of predator spceies", color="darkred",
+                                                                    linewidth=0.5)
+
+        self.ax_entity_species.set_xlim(0, 10)  # Initial x-axis limit
+        self.ax_entity_species.set_ylim(0, 110)  # Initial y-axis limit
+        self.ax_entity_species.set_title("Number of species in population", fontsize=16, fontweight="bold")
+        self.ax_entity_species.set_xlabel("Number of Generations", fontsize=12)
+        self.ax_entity_species.set_ylabel("Number of species", fontsize=12)
+        self.ax_entity_species.legend(loc="upper right", fontsize=10)
+
+        # Turn on interactive mode so the plot updates in a separate window
+        plt.ion()
+        plt.show()
+
+    def update_plot_entity_num_species(self,save_path):
+        """Update the plot for entity evolution (prey and predator fitness over generations)."""
+        # Update the data for the lines on the plot
+        x_axis = [i for i in range(self.number_of_generations)]
+        self.line_predator_species.set_data(x_axis, self.prey_num_species)
+        self.line_prey_species.set_data(x_axis, self.predator_num_species)
+
+        # Dynamically adjust x-axis if the data exceeds the initial limit
+        if len([i for i in range(self.number_of_generations)]) > self.ax_entity_species.get_xlim()[
+            1] - 1:  # Add buffer to x-axis
+            self.ax_entity_species.set_xlim(0, len([i for i in range(self.number_of_generations)]) + 1)
+
+        # Dynamically adjust y-axis if the values exceed the initial limit
+        if len(self.prey_num_species) > self.ax_entity_species.get_ylim()[
+            1] - 10:  # Add buffer to y-axis for prey max fitness
+            self.ax_entity_species.set_ylim(0, max(self.prey_max_fitness) + 10)
+        if len(self.predator_num_species) > self.ax_entity_species.get_ylim()[
+            1] - 10:  # Add buffer to y-axis for predator avg fitness
+            self.ax_entity_species.set_ylim(0, max(self.predator_avg_fitness) + 10)
+        # Redraw the plot and update it
+        plt.draw()
 
     # Cap the maximum number of entity that can be created
     def set_max_entity(self):

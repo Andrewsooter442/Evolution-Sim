@@ -7,15 +7,30 @@ from matplotlib.animation import FuncAnimation
 import numpy as np
 from ui import *
 
+SIMULATION_BASE_PATH = None
+def create_storage_directory():
+    base_dir = "../Extras/Data"
+    os.makedirs(base_dir, exist_ok=True)
 
-# Update the plot
-# def update_plot(line, x_axis, y_axis, ax):
-#     line.set_data(x_axis, y_axis)
-#     if len(x_axis) > ax.get_xlim()[1] - 10:  # Add buffer to x-axis
-#         ax.set_xlim(0, len(x_axis) + 10)
-#     if len(y_axis) > ax.get_ylim()[1] - 50:  # Add buffer to y-axis
-#         ax.set_ylim(0, len(y_axis) + 100)
-#     plt.pause(0.1)
+    # Find the next sequential directory name
+    existing_dirs = [
+        d for d in os.listdir(base_dir) if d.startswith("simulation_") and os.path.isdir(os.path.join(base_dir, d))
+    ]
+    next_simulation_number = (
+            max([int(d.split("_")[1]) for d in existing_dirs if d.split("_")[1].isdigit()] or [0]) + 1
+    )
+    new_dir = os.path.join(base_dir, f"simulation_{next_simulation_number}")
+    SIMULATION_BASE_PATH = new_dir
+
+    # Create the new directory
+    os.makedirs(new_dir)
+    graphs_dir = os.path.join(new_dir, "Graphs")
+    checkpoints_dir = os.path.join(new_dir, "Checkpoints")
+
+    os.makedirs(graphs_dir, exist_ok=True)
+    os.makedirs(checkpoints_dir, exist_ok=True)
+
+
 class Game(Draw):
     # Initialize the game
     def start(self):
@@ -29,6 +44,20 @@ class Game(Draw):
         for _ in range(3000):
             self.create_world(water=self.water, forest=self.forest, land=self.land)
 
+    def update_stats(self, prey_population, predator_population):
+        # Prey
+        self.number_of_generations +=1
+        self.prey_num_species.append( len(prey_population.species.species))
+        prey_genomes = prey_population.population.values()
+        self.prey_avg_fitness.append( sum(genome.fitness for genome in prey_genomes) / len(prey_genomes))
+        self.prey_max_fitness.append( max(genome.fitness for genome in prey_genomes))
+
+        # Predator
+        self.predator_num_species.append( len(predator_population.species.species))
+        predator_genomes = predator_population.population.values()
+        self.predator_avg_fitness.append( sum(genome.fitness for genome in predator_genomes) / len(predator_genomes))
+        self.predator_max_fitness.append( max(genome.fitness for genome in predator_genomes))
+
     # Tasks that run on every frame
     def tasks(self):
         self.num_frames += 1
@@ -36,7 +65,7 @@ class Game(Draw):
         self.prey_population_size.append(len(self.prey_set))
         self.predator_population_size.append(len(self.predator_set))
 
-        if self.num_frames % 5 and self.update_graph == 0:
+        if self.number_of_generations<5 and self.update_graph == 0:
             self.update_plot_population(
                 self.line_prey_pop,
                 self.line_predator_pop,
@@ -44,6 +73,7 @@ class Game(Draw):
                 self.prey_population_size,
                 self.predator_population_size,
                 self.ax_prey_pop,
+                SIMULATION_BASE_PATH
             )
 
         # For predators
@@ -97,7 +127,6 @@ class Game(Draw):
         # Draw the stuff
         self.more_shit()
 
-
 def initialize_populations(sim):
     prey_population = sim.prey_population
     prey_population.reporters.add(StdOutReporter(True))
@@ -111,7 +140,19 @@ def initialize_populations(sim):
 
 
 def update_prey_population(prey_population):
-    print("")
+    # Update the stats
+    sim.update_stats(prey_population, predator_population)
+    sim.update_plot_entity_evolution(SIMULATION_BASE_PATH)
+    sim.update_plot_entity_num_species(SIMULATION_BASE_PATH)
+    sim.update_plot_population(
+        sim.line_prey_pop,
+        sim.line_predator_pop,
+        [i for i in range(len(sim.prey_population_size))],
+        sim.prey_population_size,
+        sim.predator_population_size,
+        sim.ax_prey_pop,
+        SIMULATION_BASE_PATH
+    )
     print("Prey Population")
     prey_population.reporters.start_generation(prey_population.generation)
     prey_population.population = prey_population.reproduction.reproduce(
@@ -130,10 +171,10 @@ def update_prey_population(prey_population):
 
 
 def update_predator_population(predator_population):
-    print("")
     print("Predator Population")
     predator_population.reporters.start_generation(predator_population.generation)
     predator_population.population = predator_population.reproduction.reproduce(
+
         predator_population.config,
         predator_population.species,
         predator_population.config.pop_size,
@@ -150,7 +191,14 @@ def update_predator_population(predator_population):
         predator_population.population,
         predator_population.species,
     )
+
+    # Next step
     sim.populate()
+    # print(f"number of generations: {sim.number_of_generations}")
+    # print(f"predator avg: {sim.predator_avg_fitness}")
+    # print(f"predator max : {sim.predator_max_fitness}")
+    # print(f"Prey avg: {sim.prey_max_fitness}")
+    # print(f"Prey max: {sim.prey_avg_fitness}")
     while sim.prey_set or sim.predator_set:
         sim.loop()
 
@@ -158,12 +206,15 @@ def update_predator_population(predator_population):
     update_predator_population(predator_population)
 
 
+create_storage_directory()
 sim = Game()
 sim.menu()
 sim.start()
 sim.init_pygame()
 sim.populate()
 sim.initialize_plot_prey_and_predator_population()
+sim.initialize_plot_prey_and_predator_evolution()
+sim.initialize_plot_prey_and_predator_num_species()
 prey_population, predator_population, prey_statistics, predator_statistics = (
     initialize_populations(sim)
 )
@@ -172,6 +223,7 @@ if sim.num_generations is None:
         sim.populate()
         while sim.prey_set or sim.predator_set:
             sim.loop()
+
         update_prey_population(prey_population)
         update_predator_population(predator_population)
 else:
