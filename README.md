@@ -1,10 +1,13 @@
 # Evolution-Sim
 
 ![Ui](./Extras/Samples/UI.png)
-**_Watch this for a better understanding_**
+**_Watch this for a better understanding_** https://youtu.be/-wZjmAEtzoE
+
+**_To see the intelligent behavior watch this_** https://youtu.be/ayHRo4aFl-s?si=By1Y1bnC9Y91cTI
+
 [![Simulation](./Extras/Samples/Sim_screen.png)](https://youtu.be/-wZjmAEtzoE )
 
-[//]: # ([Watch the video on YouTube])
+[//]: # ([Watch the video on YouTube]) 
 
 ![Screenshot 2025-01-25 at 10.59.18 AM copy.png](Extras/Samples/Screenshot%202025-01-25%20at%2010.59.18%E2%80%AFAM%20copy.png)
 

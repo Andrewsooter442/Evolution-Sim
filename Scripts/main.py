@@ -8,16 +8,24 @@ import numpy as np
 from ui import *
 
 SIMULATION_BASE_PATH = None
+
+
 def create_storage_directory():
     base_dir = "../Extras/Data"
     os.makedirs(base_dir, exist_ok=True)
 
     # Find the next sequential directory name
     existing_dirs = [
-        d for d in os.listdir(base_dir) if d.startswith("simulation_") and os.path.isdir(os.path.join(base_dir, d))
+        d
+        for d in os.listdir(base_dir)
+        if d.startswith("simulation_") and os.path.isdir(os.path.join(base_dir, d))
     ]
     next_simulation_number = (
-            max([int(d.split("_")[1]) for d in existing_dirs if d.split("_")[1].isdigit()] or [0]) + 1
+        max(
+            [int(d.split("_")[1]) for d in existing_dirs if d.split("_")[1].isdigit()]
+            or [0]
+        )
+        + 1
     )
     new_dir = os.path.join(base_dir, f"simulation_{next_simulation_number}")
     SIMULATION_BASE_PATH = new_dir
@@ -46,17 +54,23 @@ class Game(Draw):
 
     def update_stats(self, prey_population, predator_population):
         # Prey
-        self.number_of_generations +=1
-        self.prey_num_species.append( len(prey_population.species.species))
+        self.number_of_generations += 1
+        self.prey_num_species.append(len(prey_population.species.species))
         prey_genomes = prey_population.population.values()
-        self.prey_avg_fitness.append( sum(genome.fitness for genome in prey_genomes) / len(prey_genomes))
-        self.prey_max_fitness.append( max(genome.fitness for genome in prey_genomes))
+        self.prey_avg_fitness.append(
+            sum(genome.fitness for genome in prey_genomes) / len(prey_genomes)
+        )
+        self.prey_max_fitness.append(max(genome.fitness for genome in prey_genomes))
 
         # Predator
-        self.predator_num_species.append( len(predator_population.species.species))
+        self.predator_num_species.append(len(predator_population.species.species))
         predator_genomes = predator_population.population.values()
-        self.predator_avg_fitness.append( sum(genome.fitness for genome in predator_genomes) / len(predator_genomes))
-        self.predator_max_fitness.append( max(genome.fitness for genome in predator_genomes))
+        self.predator_avg_fitness.append(
+            sum(genome.fitness for genome in predator_genomes) / len(predator_genomes)
+        )
+        self.predator_max_fitness.append(
+            max(genome.fitness for genome in predator_genomes)
+        )
 
     # Tasks that run on every frame
     def tasks(self):
@@ -65,7 +79,7 @@ class Game(Draw):
         self.prey_population_size.append(len(self.prey_set))
         self.predator_population_size.append(len(self.predator_set))
 
-        if self.number_of_generations<5 and self.update_graph == 0:
+        if self.number_of_generations < 5 and self.update_graph == 0:
             self.update_plot_population(
                 self.line_prey_pop,
                 self.line_predator_pop,
@@ -73,7 +87,7 @@ class Game(Draw):
                 self.prey_population_size,
                 self.predator_population_size,
                 self.ax_prey_pop,
-                SIMULATION_BASE_PATH
+                SIMULATION_BASE_PATH,
             )
 
         # For predators
@@ -81,8 +95,8 @@ class Game(Draw):
         for pos in keys:
             if pos in self.predator_set.keys():
                 predator = self.predator_set[pos]
-                predator.health+=predator.healing_rate
-                if predator.health>predator.max_health:
+                predator.health += predator.healing_rate
+                if predator.health > predator.max_health:
                     predator.health = predator.max_health
                 predator.Energy -= predator.exists
                 if predator.Energy > predator.Max_Energy:
@@ -108,7 +122,7 @@ class Game(Draw):
             prey.Energy -= prey.exists
 
             if not self.predator_set:
-                prey.Energy -= prey.exists*2
+                prey.Energy -= prey.exists * 2
             if prey.Energy > prey.Max_Energy:
                 prey.Energy = prey.Max_Energy
             if prey.Energy <= 0:
@@ -125,15 +139,17 @@ class Game(Draw):
 
     def loop(self, draw=False):
         # Initialize the window
-        self.shit()
+        self.initial_the_window()
         # Main logic
         self.calculate_fitness()
         # self.test_move()
         self.tasks()
+
         self.draw_entity()
 
         # Draw the stuff
-        self.more_shit()
+        self.do_input_stuff()
+
 
 def initialize_populations(sim):
     prey_population = sim.prey_population
@@ -159,7 +175,7 @@ def update_prey_population(prey_population):
         sim.prey_population_size,
         sim.predator_population_size,
         sim.ax_prey_pop,
-        SIMULATION_BASE_PATH
+        SIMULATION_BASE_PATH,
     )
     print("Prey Population")
     prey_population.reporters.start_generation(prey_population.generation)
@@ -182,7 +198,6 @@ def update_predator_population(predator_population):
     print("Predator Population")
     predator_population.reporters.start_generation(predator_population.generation)
     predator_population.population = predator_population.reproduction.reproduce(
-
         predator_population.config,
         predator_population.species,
         predator_population.config.pop_size,

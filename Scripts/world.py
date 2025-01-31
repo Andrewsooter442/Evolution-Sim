@@ -468,24 +468,3 @@ class World:
         calculate_fitness_prey()
         calculate_fitness_predator()
 
-    def test_move(self):
-
-        # Get a iterator over all the entities
-        values = list(self.prey_set.values())
-        for entity in values:
-            print(f"{entity} casting rays")
-            rays = entity.cast_ray()
-            print(f"{entity} checking for collisions")
-            res = entity.ray_collision(rays)
-            print(f"{res} res of checking for collisions")
-        keys = list(self.prey_set.keys())
-        for j in keys:
-            if j in self.prey_set:
-                entity = self.prey_set[j]
-                entity.move_and_collide(Vector2(1, 0), 1)
-                # (entity.network_inputs())
-
-        key = list(self.predator_set.keys())
-        for j in key:
-            if j in self.predator_set:
-                self.predator_set[j].move_and_collide(Vector2(1, 0), 1)

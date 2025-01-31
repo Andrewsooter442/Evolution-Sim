@@ -31,83 +31,6 @@ class Helper(World):
         # Helper function variables
         self.dropdown_active = False
 
-    # Create a text object
-    def text_objects(self, text, font=None):
-        textSurface = font.render(text, True, (0, 0, 0))
-        return textSurface, textSurface.get_rect()
-
-    # Create a button for menu that can be clicked
-    def button(self, msg, x, y, w, h, ic, ac, action=dummy()):
-        mouse = pygame.mouse.get_pos()
-        click = pygame.mouse.get_pressed()
-        if x + w > mouse[0] > x and y + h > mouse[1] > y:
-            pygame.draw.rect(self.surface, ac, (x, y, w, h), border_radius=10)
-            if click[0] == 1:
-                action()
-        else:
-            pygame.draw.rect(self.surface, ic, (x, y, w, h), border_radius=10)
-        smallText = pygame.font.Font(None, 20)
-        textSurf, textRect = self.text_objects(msg, smallText)
-        textRect.center = (x + (w / 2), y + (h / 2))
-        self.surface.blit(textSurf, textRect)
-
-    # Create a slider that sets the value of a variable
-    def slider(self, x, y, w, h, ic, ac, min, max, action=dummy()):
-        def slider(self, x, y, w, h, ic, ac, range, action=dummy()):
-            mouse = pygame.mouse.get_pos()
-            click = pygame.mouse.get_pressed()
-            slider_pos = x
-
-            # Draw the slider background
-            pygame.draw.rect(self.surface, ic, (x, y, w, h))
-
-            # Check if the mouse is over the slider
-            if x + w > mouse[0] > x and y + h > mouse[1] > y:
-                if click[0] == 1:
-                    slider_pos = mouse[0]
-                    action(slider_pos)
-
-            # Draw the slider handle
-            pygame.draw.rect(self.surface, ac, (slider_pos - h // 2, y, h, h))
-
-            # Calculate the value based on the slider position
-            value = (slider_pos - x) / w * (range[1] - range[0]) + range[0]
-            return value
-
-    # Create a drop-down menu to set a variable to a value from a list
-    def drop_down(self, x, y, w, h, ic, ac, options, action=dummy()):
-        mouse = pygame.mouse.get_pos()
-        click = pygame.mouse.get_pressed()
-
-        # Draw the main button
-        if x + w > mouse[0] > x and y + h > mouse[1] > y:
-            pygame.draw.rect(self.surface, ac, (x, y, w, h))
-            if max(click) == 1 and not self.dropdown_active:
-                self.dropdown_active = not self.dropdown_active
-        else:
-            pygame.draw.rect(self.surface, ic, (x, y, w, h))
-
-        smallText = pygame.font.Font(None, 20)
-        textSurf, textRect = self.text_objects(options[0], smallText)
-        textRect.center = (x + (w / 2), y + (h / 2))
-        self.surface.blit(textSurf, textRect)
-
-        # Draw the dropdown options
-        if self.dropdown_active:
-            for i, option in enumerate(options[1:]):
-                option_y = y + (i + 1) * h
-                if x + w > mouse[0] > x and option_y + h > mouse[1] > option_y:
-                    pygame.draw.rect(self.surface, ac, (x, option_y, w, h))
-                    if click[0] == 1:
-                        action(option)
-                        dropdown_active = False
-                else:
-                    pygame.draw.rect(self.surface, ic, (x, option_y, w, h))
-
-                textSurf, textRect = self.text_objects(option, smallText)
-                textRect.center = (x + (w / 2), option_y + (h / 2))
-                self.surface.blit(textSurf, textRect)
-
     def update_entry(self, entry, value):
         entry.configure(state="normal")  # Temporarily enable to update
         entry.delete(0, "end")  # Clear the current value
@@ -625,7 +548,7 @@ class Draw(Menu):
             )
 
     # Initializes the window and hears for events
-    def shit(self):
+    def initial_the_window(self):
         self.time += 1 / self.FPS
         self.screen.fill(pygame.Color("white"))
         self.surface.fill(pygame.Color("white"))
@@ -648,9 +571,9 @@ class Draw(Menu):
                         self.run = True
                 if event.key == pygame.K_g:
                     if self.update_graph:
-                        self.update_graph= False
+                        self.update_graph = False
                     else:
-                        self.update_graph= True
+                        self.update_graph = True
 
                 if event.key == pygame.K_UP:
                     self.run = True
@@ -670,14 +593,14 @@ class Draw(Menu):
         pygame.display.flip()
 
     # Draw the stuff on window
-    def more_shit(self):
+    def do_input_stuff(self):
         self.screen.blit(self.surface, (0, 0))
         self.render_fps()
 
     # Draw the main menu
     def main_menu(self):
         while True:
-            self.shit()
+            self.initial_the_window()
             ac = (100, 150, 100)
             ic = (100, 100, 150)
             self.button(
@@ -689,7 +612,7 @@ class Draw(Menu):
                 ic,
                 ac,
             )
-            self.more_shit()
+            self.do_input_stuff()
 
     def options(self):
         pass

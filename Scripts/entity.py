@@ -65,54 +65,6 @@ class Entity(ABC):
         self.genome = genome
         self.net = neat.nn.FeedForwardNetwork.create(self.genome, config)
 
-    # Return the starting point and the angle with the x-axis of the ray
-    def cast_ray(self):
-        input_signal= []
-        for i in np.linspace(-self.vision_width/2,self.vision_width/2,self.num_vision_rays):
-            x_angle = self.direction+i 
-            input_signal.append((self.pos,x_angle))
-        return input_signal
-    # input_signal -> (starting point of ray and angle with x-axis)
-    def ray_collision(self,input_signal):
-        signal = []
-        for i in input_signal:
-            print(f"{i}this is input signal")
-            origin = i[0]
-            angle = i[1]
-            x_axis_projection_len = self.vision*cos(radians(angle))
-            y_axis_projection_len = self.vision*sin(radians(angle))
-            if x_axis_projection_len<0:
-                x_range = (origin.x+x_axis_projection_len,origin.x)
-            else:
-                x_range = (origin.x,origin.x+x_axis_projection_len)
-
-            if y_axis_projection_len<0:
-                y_range = (origin.x+x_axis_projection_len,origin.x)
-            else:
-                y_range = (origin.x,origin.x+x_axis_projection_len)
-
-            closest_prey= None
-            closest_predator= None
-            if self.can_see_prey:
-                for prey_pos in list(self.world.prey_set.keys()):
-                    if x_range[0] <= prey_pos[0] <= x_range[1] and y_range[0] <= prey_pos[1] <= y_range[1]:
-                        if get_dis_from_line(i,(prey_pos[0],prey_pos[1])) < self.world.cell_size/2:
-                            if origin.x<prey_pos[0]:
-                                closest_prey = get_distance_from_point((origin.x,origin.y), prey_pos)
-
-
-            if self.can_see_predator:
-                for predator_pos in self.world.predator_set:
-                    if y_range[0] <= predator_pos[1] <= y_range[1] and y_range[0] <= predator_pos.pos.y <= y_range[1]:
-                        if get_dis_from_line(i,(predator_pos[0],predator_pos[1])) < self.world.cell_size/2:
-                            if origin.x<predator_pos[0]:
-                                closest_predator = get_distance_from_point((origin.x,origin.y), predator_pos)
-
-            signal.append(closest_predator)
-            signal.append(closest_prey)
-        return signal
-
-
     # Check of species in the neighbour
     # @abstractmethod
     # def get_vision(self): ...
@@ -457,99 +409,13 @@ class Predator(Entity):
             self.Energy += self.eat_gain
             self.genome.fitness = self.fitness
 
-    # def get_vision(self):
-    #     probability = 1
-    #     # probability = self.world.luminance / 100
-    #
-    #     # to_ret = [opposite species in north till vision, south, east, west,]
-    #     to_ret = []
-    #     to_ret_prey = [0 for _ in range(8)]
-    #
-    #     for i in range(1, self.vision + 1):
-    #         # Prey vision
-    #         # North vision
-    #         if self.pos.y - i >= 0 and to_ret_prey[0] == 0:
-    #             pos = (self.pos.x, self.pos.y - 1)
-    #             if pos in self.world.prey_set:
-    #                 # Certainty of vision depends on luminance
-    #                 to_ret_prey[0] = random.choices(
-    #                     [self.vision + 1 - i, 0], weights=[probability, 1 - probability]
-    #                 )[0]
-    #
-    #         # South Vision
-    #         if self.pos.y + i < self.world.GRID.y and to_ret_prey[1] == 0:
-    #             pos = (self.pos.x, self.pos.y + 1)
-    #             if pos in self.world.prey_set:
-    #                 # Certainty of vision depends on luminance
-    #                 to_ret_prey[1] = random.choices(
-    #                     [self.vision + 1 - i, 0], weights=[probability, 1 - probability]
-    #                 )[0]
-    #
-    #         # East Vision
-    #         if self.pos.x + i < self.world.GRID.x and to_ret_prey[2] == 0:
-    #             pos = (self.pos.x + 1, self.pos.y)
-    #             if pos in self.world.prey_set:
-    #                 # Certainty of vision depends on luminance
-    #                 to_ret_prey[2] = random.choices(
-    #                     [self.vision + 1 - i, 0], weights=[probability, 1 - probability]
-    #                 )[0]
-    #
-    #         # West Vision
-    #         if self.pos.x - i < 0 and to_ret_prey[3] == 0:
-    #             pos = (self.pos.x - 1, self.pos.y)
-    #             if pos in self.world.prey_set:
-    #                 to_ret_prey[3] = random.choices(
-    #                     [self.vision + 1 - i, 0], weights=[probability, 1 - probability]
-    #                 )[0]
-    #
-    #
-    #
-    #         # North-East vision
-    #         if self.pos.y - i >= 0 and self.pos.x + i<self.world.GRID.x and to_ret_prey[4] == 0:
-    #             pos = (self.pos.x+i, self.pos.y - i)
-    #             if pos in self.world.prey_set:
-    #                 # Certainty of vision depends on luminance
-    #                 to_ret_prey[4] = random.choices(
-    #                     [self.vision + 1 - i, 0], weights=[probability, 1 - probability]
-    #                 )[0]
-    #         # South-East Vision
-    #         if self.pos.y + i < self.world.GRID.y and self.pos.x +i <self.world.GRID.x and to_ret_prey[5] == 0:
-    #             pos = (self.pos.x+i, self.pos.y + i)
-    #             if pos in self.world.prey_set:
-    #                 # Certainty of vision depends on luminance
-    #                 to_ret_prey[5] = random.choices(
-    #                     [self.vision + 1 - i, 0], weights=[probability, 1 - probability]
-    #                 )[0]
-    #
-    #         # North-West Vision
-    #         if self.pos.x + i < self.world.GRID.x and self.pos.y-i>=0 and to_ret_prey[6] == 0:
-    #             pos = (self.pos.x + i, self.pos.y-i)
-    #
-    #             if pos in self.world.prey_set:
-    #                 # Certainty of vision depends on luminance
-    #                 to_ret_prey[6] = random.choices(
-    #                     [self.vision + 1 - i, 0], weights=[probability, 1 - probability]
-    #                 )[0]
-    #
-    #         # South-West Vision
-    #         if self.pos.x - i < 0 and self.pos.y -i < self.world.GRID.y and to_ret_prey[7] == 0:
-    #             pos = (self.pos.x - i, self.pos.y-i)
-    #             if pos in self.world.prey_set:
-    #                 to_ret_prey[7] = random.choices(
-    #                     [self.vision + 1 - i, 0], weights=[probability, 1 - probability]
-    #                 )[0]
-
-
-        # to_ret += to_ret_prey
-        # return to_ret
-
 
 class Prey(Entity):
     def __init__(self, pos: Vector2, world, prey_config, genome=None):
         super().__init__(pos, world, prey_config, genome)
         self.speed = 1
         self.type = "Prey"
-        self.fitness = 100
+        self.fitness = 150
         self.exists = 0.5
         self.Max_Energy = (
             sqrt(2 * self.world.GRID.x**2) * (self.movement_cost + self.exists*2) * 2
@@ -566,29 +432,6 @@ class Prey(Entity):
         # See how far the species can see
         self.can_see_prey = True
         self.can_see_predator = False
-
-    """
-    Probability of moving North
-                          South
-                          East
-                          West
-    Random movement
-    """
-
-    # def preform_action(self, output):
-    #     max_index = output.index(max(output))
-    #     match max_index:
-    #         case 0:
-    #             self.move_and_collide(Vector2(0, -1), 1)
-    #         case 1:
-    #             self.move_and_collide(Vector2(0, 1), 1)
-    #         case 2:
-    #             self.move_and_collide(Vector2(1, 0), 1)
-    #         case 3:
-    #             self.move_and_collide(Vector2(-1, 0), 1)
-    #         case 4:
-    #             self.move_and_collide(Vector2(0, 0), 1)
-
     def move_and_collide(self, direction: Vector2, speed):
         self.genome.fitness = self.fitness
         pos = self.pos + direction * speed
@@ -614,93 +457,6 @@ class Prey(Entity):
             self.Energy -= self.movement_cost
             self.world.prey_set[(self.pos.x, self.pos.y)] = self
             self.num_steps +=1
-
-    # def get_vision(self):
-    #     # probability = self.world.luminance / 100
-    #     probability = 1
-    #
-    #     # to_ret = [opposite species in north till vision, south, east, west,]
-    #     to_ret = []
-    #     to_ret_prey = [0 for _ in range(4)]
-    #     to_ret_predator = [0 for _ in range(8)]
-    #
-    #     for i in range(1, self.vision + 1):
-    #
-    #         # Predator Vision
-    #         # North vision
-    #         if self.pos.y - i >= 0 and to_ret_predator[0] == 0:
-    #             pos = (self.pos.x, self.pos.y - i)
-    #             if pos in self.world.predator_set:
-    #                 # Certainty of vision depends on luminance
-    #                 to_ret_predator[0] = random.choices(
-    #                     [self.vision + 1 - i, 0], weights=[probability, 1 - probability]
-    #                 )[0]
-    #         # South Vision
-    #         if self.pos.y + i < self.world.GRID.y and to_ret_predator[1] == 0:
-    #             pos = (self.pos.x, self.pos.y + i)
-    #             if pos in self.world.predator_set:
-    #                 # Certainty of vision depends on luminance
-    #                 to_ret_predator[1] = random.choices(
-    #                     [self.vision + 1 - i, 0], weights=[probability, 1 - probability]
-    #                 )[0]
-    #
-    #         # East Vision
-    #         if self.pos.x + i < self.world.GRID.x and to_ret_predator[2] == 0:
-    #             pos = (self.pos.x + i, self.pos.y)
-    #
-    #             if pos in self.world.predator_set:
-    #                 # Certainty of vision depends on luminance
-    #                 to_ret_predator[2] = random.choices(
-    #                     [self.vision + 1 - i, 0], weights=[probability, 1 - probability]
-    #                 )[0]
-    #
-    #         # West Vision
-    #         if self.pos.x - i < 0 and to_ret_predator[3] == 0:
-    #             pos = (self.pos.x - i, self.pos.y)
-    #             if pos in self.world.predator_set:
-    #                 to_ret_predator[3] = random.choices(
-    #                     [self.vision + 1 - i, 0], weights=[probability, 1 - probability]
-    #                 )[0]
-    #
-    #
-    #         # North-East vision
-    #         if self.pos.y - i >= 0 and self.pos.x + i<self.world.GRID.x and to_ret_predator[4] == 0:
-    #             pos = (self.pos.x+i, self.pos.y - i)
-    #             if pos in self.world.predator_set:
-    #                 # Certainty of vision depends on luminance
-    #                 to_ret_predator[4] = random.choices(
-    #                     [self.vision + 1 - i, 0], weights=[probability, 1 - probability]
-    #                 )[0]
-    #         # South-East Vision
-    #         if self.pos.y + i < self.world.GRID.y and self.pos.x +i <self.world.GRID.x and to_ret_predator[5] == 0:
-    #             pos = (self.pos.x+i, self.pos.y + i)
-    #             if pos in self.world.predator_set:
-    #                 # Certainty of vision depends on luminance
-    #                 to_ret_predator[5] = random.choices(
-    #                     [self.vision + 1 - i, 0], weights=[probability, 1 - probability]
-    #                 )[0]
-    #
-    #         # North-West Vision
-    #         if self.pos.x + i < self.world.GRID.x and self.pos.y-i>=0 and to_ret_predator[6] == 0:
-    #             pos = (self.pos.x + i, self.pos.y-i)
-    #
-    #             if pos in self.world.predator_set:
-    #                 # Certainty of vision depends on luminance
-    #                 to_ret_predator[6] = random.choices(
-    #                     [self.vision + 1 - i, 0], weights=[probability, 1 - probability]
-    #                 )[0]
-    #
-    #         # South-West Vision
-    #         if self.pos.x - i < 0 and self.pos.y -i < self.world.GRID.y and to_ret_predator[7] == 0:
-    #             pos = (self.pos.x - i, self.pos.y-i)
-    #             if pos in self.world.predator_set:
-    #                 to_ret_predator[7] = random.choices(
-    #                     [self.vision + 1 - i, 0], weights=[probability, 1 - probability]
-    #                 )[0]
-    #
-    #     to_ret += to_ret_predator
-    #     return to_ret
-
     def check_energy(self):
         if self.Energy > self.Max_Energy:
             self.Energy = self.Max_Energy
